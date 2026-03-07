@@ -1,0 +1,47 @@
+{
+  "projectName": "iioc-26",
+  "mode": "file-router",
+  "typescript": true,
+  "packageManager": "bun",
+  "includeExamples": true,
+  "tailwind": true,
+  "addOnOptions": {
+    "prisma": {
+      "database": "postgres"
+    }
+  },
+  "envVarValues": {
+    "VITE_CLERK_PUBLISHABLE_KEY": "pk_test_c3VwZXJiLWdvYmxpbi01My5jbGVyay5hY2NvdW50cy5kZXYk",
+    "CONVEX_DEPLOYMENT": "content-basilisk-577",
+    "VITE_CONVEX_URL": "https://content-basilisk-577.eu-west-1.convex.cloud"
+  },
+  "git": true,
+  "routerOnly": false,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": [
+    "biome",
+    "netlify",
+    "clerk",
+    "convex",
+    "sentry",
+    "prisma",
+    "strapi",
+    "ai",
+    "compiler",
+    "db",
+    "form",
+    "mcp",
+    "oRPC",
+    "shadcn",
+    "t3env",
+    "table",
+    "tRPC",
+    "better-auth",
+    "posthog",
+    "apollo-client",
+    "tanstack-query",
+    "resume",
+    "store"
+  ]
+}
