@@ -1,96 +1,51 @@
 import {
   HeadContent,
+  Outlet,
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-import Footer from '../components/Footer'
-import Header from '../components/Header'
 
 import ClerkProvider from '../integrations/clerk/provider'
-
 import ConvexProvider from '../integrations/convex/provider'
-
-import PostHogProvider from '../integrations/posthog/provider'
-
 import TanStackQueryProvider from '../integrations/tanstack-query/root-provider'
 
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-
-import StoreDevtools from '../lib/demo-store-devtools'
-
 import appCss from '../styles.css?url'
-
-import type { ApolloClientIntegration } from '@apollo/client-integration-tanstack-start'
-
 import type { QueryClient } from '@tanstack/react-query'
 
-import type { TRPCRouter } from '#/integrations/trpc/router'
-import type { TRPCOptionsProxy } from '@trpc/tanstack-react-query'
-
-interface MyRouterContext extends ApolloClientIntegration.RouterContext {
+interface MyRouterContext {
   queryClient: QueryClient
-
-  trpc: TRPCOptionsProxy<TRPCRouter>
 }
-
-const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
     meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'TanStack Start Starter',
-      },
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: 'AirSentinel OS — Environmental Intelligence' },
+      { name: 'description', content: 'Hyper-local environmental monitoring and decision intelligence platform' },
     ],
     links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap' },
     ],
   }),
-  shellComponent: RootDocument,
+  component: RootComponent,
 })
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootComponent() {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
+      <body className="font-sans antialiased bg-[#09090b] text-white min-h-screen">
         <ClerkProvider>
           <ConvexProvider>
-            <PostHogProvider>
-              <TanStackQueryProvider>
-                <Header />
-                {children}
-                <Footer />
-                <TanStackDevtools
-                  config={{
-                    position: 'bottom-right',
-                  }}
-                  plugins={[
-                    {
-                      name: 'Tanstack Router',
-                      render: <TanStackRouterDevtoolsPanel />,
-                    },
-                    TanStackQueryDevtools,
-                    StoreDevtools,
-                  ]}
-                />
-              </TanStackQueryProvider>
-            </PostHogProvider>
+            <TanStackQueryProvider>
+              <Outlet />
+            </TanStackQueryProvider>
           </ConvexProvider>
         </ClerkProvider>
         <Scripts />
