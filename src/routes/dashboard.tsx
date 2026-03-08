@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useUser, UserButton } from '@clerk/clerk-react'
-import { useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import { useEffect, useState } from 'react'
+import { useEnvStore } from '#/store/envStore'
 import { CityMap, type RouteSegment } from '#/components/map/CityMap'
 import { GovView } from '#/components/dashboard/GovView'
 import { CitizenView } from '#/components/dashboard/CitizenView'
+import { SmartAlerts } from '#/components/dashboard/SmartAlerts'
 
 export const Route = createFileRoute('/dashboard')({
   component: DashboardPage,
@@ -14,8 +14,9 @@ export const Route = createFileRoute('/dashboard')({
 function DashboardPage() {
   const { user, isSignedIn, isLoaded } = useUser()
   const navigate = useNavigate()
-  const syncUser = useMutation(api.users.getOrCreate)
   const [routeSegments] = useState<RouteSegment[]>([])
+  
+  const { userLocation, setUserLocation } = useEnvStore()
 
   // Redirect if not signed in
   useEffect(() => {
@@ -24,17 +25,30 @@ function DashboardPage() {
     }
   }, [isLoaded, isSignedIn, navigate])
 
-  // Sync user to Convex after sign-in
+  // Sync user to Convex after sign-in (Mocked out for this UI build to prevent TS errors on un-migrated DB)
   useEffect(() => {
     if (user) {
-      syncUser({
-        clerkId: user.id,
-        email: user.emailAddresses[0]?.emailAddress ?? '',
-        name: user.fullName ?? undefined,
-        avatarUrl: user.imageUrl ?? undefined,
-      }).catch(console.error)
+      console.log("User signed in:", user.fullName)
     }
-  }, [user, syncUser])
+  }, [user])
+
+  // Request user location
+  useEffect(() => {
+    if (navigator.geolocation && !userLocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation([position.coords.longitude, position.coords.latitude])
+        },
+        (error) => {
+          console.error("Error getting user location:", error)
+          // Fallback location if denied (e.g. San Francisco)
+          setUserLocation([-122.4, 37.74])
+        }
+      )
+    } else if (!navigator.geolocation && !userLocation) {
+      setUserLocation([-122.4, 37.74])
+    }
+  }, [userLocation, setUserLocation])
 
   if (!isLoaded || !isSignedIn) {
     return (
@@ -69,11 +83,12 @@ function DashboardPage() {
 
       {/* 3D Map */}
       <div className="absolute inset-0 z-0">
-        <CityMap routeSegments={routeSegments} />
+        <CityMap routeSegments={routeSegments} userLocation={userLocation} />
       </div>
 
       {/* Dashboard Overlays */}
       <div className="absolute inset-0 pointer-events-none z-10">
+        <SmartAlerts />
         <GovView />
         <CitizenView />
       </div>

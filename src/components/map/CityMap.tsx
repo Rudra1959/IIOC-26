@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import DeckGL from '@deck.gl/react'
 import { H3HexagonLayer } from '@deck.gl/geo-layers'
-import { PathLayer } from '@deck.gl/layers'
-import { AmbientLight, PointLight, LightingEffect, type MapViewState } from '@deck.gl/core'
+import { PathLayer, ScatterplotLayer } from '@deck.gl/layers'
+import { AmbientLight, PointLight, LightingEffect, FlyToInterpolator } from '@deck.gl/core'
+import type { MapViewState } from '@deck.gl/core'
 import { Map } from 'react-map-gl/maplibre'
 import { latLngToCell } from 'h3-js'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -49,12 +50,26 @@ function generateMockGrid(): GridCellData[] {
   return cells
 }
 
-export function CityMap({ routeSegments }: { routeSegments: RouteSegment[] }) {
+export function CityMap({ routeSegments, userLocation }: { routeSegments: RouteSegment[], userLocation: [number, number] | null }) {
   const [data, setData] = useState<GridCellData[]>([])
+  const [viewState, setViewState] = useState<MapViewState>(INITIAL_VIEW_STATE)
 
   useEffect(() => {
     setData(generateMockGrid())
   }, [])
+
+  useEffect(() => {
+    if (userLocation) {
+       setViewState({
+         ...INITIAL_VIEW_STATE,
+         longitude: userLocation[0],
+         latitude: userLocation[1],
+         zoom: 14,             // Deep zoom for hyper-local look
+         transitionDuration: 3000,
+         transitionInterpolator: new (FlyToInterpolator as any)(),
+       })
+    }
+  }, [userLocation])
 
   const layers = useMemo(() => [
     new H3HexagonLayer<GridCellData>({
@@ -89,12 +104,50 @@ export function CityMap({ routeSegments }: { routeSegments: RouteSegment[] }) {
       getColor: (d: RouteSegment) => d.color,
       getWidth: () => 5,
     }),
-  ], [data, routeSegments])
+    ...(userLocation ? [
+      new ScatterplotLayer({
+        id: 'user-location-pulse',
+        data: [{ position: userLocation }],
+        pickable: false,
+        opacity: 0.8,
+        stroked: true,
+        filled: true,
+        radiusScale: 1,
+        radiusMinPixels: 1,
+        radiusMaxPixels: 1000,
+        lineWidthMinPixels: 2,
+        getPosition: (d: any) => d.position,
+        getFillColor: [16, 185, 129, 60], // Emerald transparent
+        getLineColor: [16, 185, 129, 255],
+        getRadius: 300, // 300 meters
+        transitions: {
+          getRadius: {
+            duration: 2000,
+            type: 'spring',
+            damping: 0.5,
+            stiffness: 0.1
+          }
+        }
+      }),
+      new ScatterplotLayer({
+        id: 'user-location-dot',
+        data: [{ position: userLocation }],
+        pickable: false,
+        opacity: 1,
+        filled: true,
+        radiusMinPixels: 4,
+        getPosition: (d: any) => d.position,
+        getFillColor: [16, 185, 129, 255], 
+        getRadius: 10,
+      })
+    ] : [])
+  ], [data, routeSegments, userLocation])
 
   return (
     <div className="relative w-full h-full min-h-screen">
       <DeckGL
-        initialViewState={INITIAL_VIEW_STATE}
+        viewState={viewState}
+        onViewStateChange={({ viewState }) => setViewState(viewState as any)}
         controller={true}
         layers={layers}
         effects={[lightingEffect]}
