@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
+    "postbuild": "node -e \"const fs = require('fs'); fs.cpSync('dist/client', 'dist', { recursive: true }); fs.renameSync('dist/_shell.html', 'dist/index.html');\"",
     "preview": "vite preview",
     "test": "vitest run",
     "format": "biome format",
