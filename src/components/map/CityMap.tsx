@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import DeckGL from '@deck.gl/react'
-import { H3HexagonLayer } from '@deck.gl/geo-layers'
 import { PathLayer, ScatterplotLayer } from '@deck.gl/layers'
 import { AmbientLight, PointLight, LightingEffect, FlyToInterpolator } from '@deck.gl/core'
 import type { MapViewState } from '@deck.gl/core'
 import { Map } from 'react-map-gl/maplibre'
-import { latLngToCell } from 'h3-js'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { useEnvStore } from '../../store/envStore'
 
 const INITIAL_VIEW_STATE: MapViewState = {
   longitude: -122.4,
@@ -20,7 +19,11 @@ const ambientLight = new AmbientLight({ color: [255, 255, 255], intensity: 1.0 }
 const pointLight = new PointLight({ color: [255, 200, 50], intensity: 2.5, position: [-122.4, 37.74, 8000] })
 const lightingEffect = new LightingEffect({ ambientLight, pointLight })
 
-interface GridCellData { id: string; score: number }
+interface ImpactData {
+  id: string
+  position: [number, number]
+  score: number
+}
 
 export interface RouteSegment {
   path: number[][]
@@ -28,38 +31,41 @@ export interface RouteSegment {
   color: [number, number, number]
 }
 
-// Generate realistic mock H3 grid data client-side (no API needed)
-function generateMockGrid(): GridCellData[] {
-  const cells: GridCellData[] = []
-  const seen = new Set<string>()
-  const centerLat = 37.74
-  const centerLng = -122.4
-
-  for (let i = 0; i < 300; i++) {
-    const lat = centerLat + (Math.random() - 0.5) * 0.14
-    const lng = centerLng + (Math.random() - 0.5) * 0.14
-    const cellId = latLngToCell(lat, lng, 9)
-
-    if (seen.has(cellId)) continue
-    seen.add(cellId)
-
+function generateLocalImpactData(centerLat: number, centerLng: number): ImpactData[] {
+  const points: ImpactData[] = []
+  for (let i = 0; i < 60; i++) {
+    const lat = centerLat + (Math.random() - 0.5) * 0.03
+    const lng = centerLng + (Math.random() - 0.5) * 0.03
+    
+    // Closer to center = better/different score
     const dist = Math.sqrt((lat - centerLat) ** 2 + (lng - centerLng) ** 2)
-    const score = Math.max(5, Math.min(95, Math.round(40 + Math.random() * 45 - dist * 300)))
-    cells.push({ id: cellId, score })
+    const score = Math.max(5, Math.min(95, Math.round(40 + Math.random() * 45 - dist * 1500)))
+    
+    points.push({
+      id: `impact-${i}`,
+      position: [lng, lat],
+      score
+    })
   }
-  return cells
+  return points
 }
 
 export function CityMap({ routeSegments, userLocation }: { routeSegments: RouteSegment[], userLocation: [number, number] | null }) {
-  const [data, setData] = useState<GridCellData[]>([])
+  const [data, setData] = useState<ImpactData[]>([])
   const [viewState, setViewState] = useState<MapViewState>(INITIAL_VIEW_STATE)
-
-  useEffect(() => {
-    setData(generateMockGrid())
-  }, [])
+  
+  const greenDestination = useEnvStore(s => s.greenDestination)
 
   useEffect(() => {
     if (userLocation) {
+       setData(generateLocalImpactData(userLocation[1], userLocation[0]))
+    } else {
+       setData(generateLocalImpactData(37.74, -122.4))
+    }
+  }, [userLocation])
+
+  useEffect(() => {
+    if (userLocation && !greenDestination) {
        setViewState({
          ...INITIAL_VIEW_STATE,
          longitude: userLocation[0],
@@ -69,28 +75,48 @@ export function CityMap({ routeSegments, userLocation }: { routeSegments: RouteS
          transitionInterpolator: new (FlyToInterpolator as any)(),
        })
     }
-  }, [userLocation])
+  }, [userLocation, greenDestination])
+
+  useEffect(() => {
+      if (greenDestination) {
+        setViewState({
+            ...INITIAL_VIEW_STATE,
+            longitude: greenDestination[0],
+            latitude: greenDestination[1],
+            zoom: 15,
+            pitch: 60,
+            transitionDuration: 4000,
+            transitionInterpolator: new (FlyToInterpolator as any)(),
+        })
+      }
+  }, [greenDestination])
 
   const layers = useMemo(() => [
-    new H3HexagonLayer<GridCellData>({
-      id: 'h3-hexagon-layer',
+    new ScatterplotLayer<ImpactData>({
+      id: 'impact-circles-layer',
       data,
       pickable: true,
-      wireframe: false,
+      opacity: 0.8,
+      stroked: true,
       filled: true,
-      extruded: true,
-      elevationScale: 50,
-      coverage: 0.9,
-      material: { ambient: 0.1, diffuse: 0.6, shininess: 32, specularColor: [60, 64, 70] },
-      getHexagon: (d: GridCellData) => d.id,
-      getFillColor: (d: GridCellData) => {
+      radiusScale: 1,
+      radiusMinPixels: 5,
+      radiusMaxPixels: 100,
+      lineWidthMinPixels: 2,
+      getPosition: d => d.position,
+      getFillColor: d => {
         const s = d.score
-        if (s > 75) return [255, 50, 50, 220]
-        if (s > 50) return [255, 165, 0, 200]
-        if (s > 25) return [255, 220, 0, 170]
-        return [50, 200, 80, 160]
+        if (s > 75) return [255, 50, 50, 200]
+        if (s > 50) return [255, 165, 0, 180]
+        if (s > 25) return [255, 220, 0, 150]
+        return [50, 200, 80, 150]
       },
-      getElevation: (d: GridCellData) => d.score * 10,
+      getLineColor: [255, 255, 255, 60],
+      getRadius: 150, // 150 meters radius
+      transitions: {
+        getRadius: { duration: 1000, type: 'spring' },
+        getFillColor: { duration: 1000 }
+      }
     }),
     new PathLayer<RouteSegment>({
       id: 'clean-route-layer',
@@ -140,8 +166,44 @@ export function CityMap({ routeSegments, userLocation }: { routeSegments: RouteS
         getFillColor: [16, 185, 129, 255], 
         getRadius: 10,
       })
+    ] : []),
+    ...(greenDestination ? [
+      new ScatterplotLayer({
+        id: 'green-destination-marker',
+        data: [{ position: greenDestination }],
+        pickable: true,
+        opacity: 1,
+        stroked: true,
+        filled: true,
+        radiusScale: 1,
+        radiusMinPixels: 8,
+        radiusMaxPixels: 100,
+        lineWidthMinPixels: 3,
+        getPosition: (d: any) => d.position,
+        getFillColor: [16, 185, 129, 255],
+        getLineColor: [255, 255, 255, 255],
+        getRadius: 80,
+      }),
+      new ScatterplotLayer({
+        id: 'green-destination-pulse',
+        data: [{ position: greenDestination }],
+        pickable: false,
+        opacity: 0.4,
+        filled: true,
+        getPosition: (d: any) => d.position,
+        getFillColor: [16, 185, 129, 100], 
+        getRadius: 400,
+        transitions: {
+          getRadius: {
+            duration: 2000,
+            type: 'spring',
+            damping: 0.5,
+            stiffness: 0.1
+          }
+        }
+      })
     ] : [])
-  ], [data, routeSegments, userLocation])
+  ], [data, routeSegments, userLocation, greenDestination])
 
   return (
     <div className="relative w-full h-full min-h-screen">
@@ -155,7 +217,7 @@ export function CityMap({ routeSegments, userLocation }: { routeSegments: RouteS
           object?.score != null
             ? {
                 html: `<div style="background:#09090b;border:1px solid #27272a;padding:12px 16px;border-radius:12px;font-family:monospace;color:#fff">
-                  <p style="font-size:10px;color:#71717a;margin:0 0 4px;text-transform:uppercase;">Risk Score</p>
+                  <p style="font-size:10px;color:#71717a;margin:0 0 4px;text-transform:uppercase;">Impact Metric</p>
                   <p style="font-size:28px;font-weight:900;margin:0;color:${object.score > 75 ? '#ef4444' : object.score > 50 ? '#f97316' : '#22c55e'}">${Math.round(object.score)}</p>
                 </div>`,
                 style: { background: 'transparent', padding: '0', border: 'none' },

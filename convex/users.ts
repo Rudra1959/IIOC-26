@@ -29,6 +29,9 @@ export const getOrCreate = mutation({
       name: args.name,
       avatarUrl: args.avatarUrl,
       createdAt: Date.now(),
+      xp: 0,
+      level: 1,
+      badges: ['Scout'],
     })
   },
 })

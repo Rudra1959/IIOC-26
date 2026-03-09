@@ -13,6 +13,8 @@ interface EnvState {
   cityAverageUHI: number
   identifiedSources: Source[]
   setInsights: (data: { cityAverageUHI: number; identifiedSources: Source[] }) => void
+  greenDestination: [number, number] | null
+  setGreenDestination: (location: [number, number] | null) => void
 }
 
 export const useEnvStore = create<EnvState>((set) => ({
@@ -25,4 +27,6 @@ export const useEnvStore = create<EnvState>((set) => ({
       cityAverageUHI: data.cityAverageUHI,
       identifiedSources: data.identifiedSources,
     }),
+  greenDestination: null,
+  setGreenDestination: (location) => set({ greenDestination: location }),
 }))

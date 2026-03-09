@@ -77,6 +77,13 @@ The dashboard implements a complex Z-indexed layout. A full-screen 3D map sits u
   - A notification dropdown enabling users to bind custom action thresholds via an HTML range slider. 
   - Prepares the logical framework for pushing hyper-local socket events when anomalies enter a personal radius.
 
+### 3. 🎮 Level Up: Playing for the Planet
+Moving beyond passive observation, AirSentinel OS transforms environmental action into a gamified mission for community volunteers (**Eco-Warriors**). We elevate the user experience from just "cleaning" to "playing for the planet":
+
+- **Volunteer XP System (Gamified Volunteering):** Creates a powerful incentive loop. Volunteers earn badges (e.g., *Scout*, *Guardian*, *Earth Hero*), build streaks, and gather 'Impact Points' that show exactly how many square meters they've helped clean. A weekly leaderboard sparks friendly competition.
+- **The Pulse Check (Feedback Loop):** A seamless, 3-question survey at the end of every task. No fluff—just a quick check to gather on-the-ground data, helping us continuously improve logistics and support for the team.
+- **The Green Map (Pristine Discovery):** A GPS-driven 'Green Spot' locator highlighting the 'Nearest Clean Zone'. This gives users a 'North Star' benchmark for what their own neighborhoods could look like, providing a goal to work toward and a pristine place to relax after a shift.
+
 ---
 
 ## 📂 File & Directory Structure
