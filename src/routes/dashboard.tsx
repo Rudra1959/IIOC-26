@@ -1,97 +1,131 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useUser, UserButton } from '@clerk/clerk-react'
-import { useEffect, useState } from 'react'
-import { useEnvStore } from '#/store/envStore'
-import { CityMap, type RouteSegment } from '#/components/map/CityMap'
-import { GovView } from '#/components/dashboard/GovView'
-import { CitizenView } from '#/components/dashboard/CitizenView'
-import { SmartAlerts } from '#/components/dashboard/SmartAlerts'
+import { UserButton, useUser } from "@clerk/clerk-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useMemo } from "react";
+import type { RouteSegment } from "#/components/map/CityMap";
+import { useEnvStore } from "#/store/envStore";
 
-export const Route = createFileRoute('/dashboard')({
-  component: DashboardPage,
-})
+const CityMap = lazy(() =>
+	import("#/components/map/CityMap").then((module) => ({
+		default: module.CityMap,
+	})),
+);
+const GovView = lazy(() =>
+	import("#/components/dashboard/GovView").then((module) => ({
+		default: module.GovView,
+	})),
+);
+const CitizenView = lazy(() =>
+	import("#/components/dashboard/CitizenView").then((module) => ({
+		default: module.CitizenView,
+	})),
+);
+const SmartAlerts = lazy(() =>
+	import("#/components/dashboard/SmartAlerts").then((module) => ({
+		default: module.SmartAlerts,
+	})),
+);
+
+export const Route = createFileRoute("/dashboard")({
+	component: DashboardPage,
+});
+
+function OverlaySkeleton() {
+	return (
+		<div className="pointer-events-none absolute inset-0 z-10">
+			<div className="absolute bottom-4 right-4 h-[520px] w-[440px] rounded-3xl border border-white/10 bg-black/30 backdrop-blur-2xl" />
+			<div className="absolute top-20 right-4 h-[340px] w-96 rounded-3xl border border-white/10 bg-black/20 backdrop-blur-2xl" />
+			<div className="absolute top-20 left-4 h-14 w-14 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-xl" />
+		</div>
+	);
+}
+
+function MapSkeleton() {
+	return (
+		<div className="absolute inset-0 z-0 overflow-hidden bg-[#09090b]">
+			<div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,197,94,0.18),transparent_28%),radial-gradient(circle_at_80%_30%,rgba(56,189,248,0.18),transparent_26%),radial-gradient(circle_at_50%_80%,rgba(251,191,36,0.14),transparent_24%)]" />
+			<div className="absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:60px_60px]" />
+		</div>
+	);
+}
 
 function DashboardPage() {
-  const { user, isSignedIn, isLoaded } = useUser()
-  const navigate = useNavigate()
-  const [routeSegments] = useState<RouteSegment[]>([])
-  
-  const { userLocation, setUserLocation } = useEnvStore()
+	const { user, isSignedIn, isLoaded } = useUser();
+	const navigate = useNavigate();
+	const { userLocation, setUserLocation } = useEnvStore();
+	const routeSegments = useMemo<RouteSegment[]>(() => [], []);
 
-  // Redirect if not signed in
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      navigate({ to: '/' })
-    }
-  }, [isLoaded, isSignedIn, navigate])
+	useEffect(() => {
+		if (isLoaded && !isSignedIn) {
+			navigate({ to: "/" });
+		}
+	}, [isLoaded, isSignedIn, navigate]);
 
-  // Sync user to Convex after sign-in (Mocked out for this UI build to prevent TS errors on un-migrated DB)
-  useEffect(() => {
-    if (user) {
-      console.log("User signed in:", user.fullName)
-    }
-  }, [user])
+	useEffect(() => {
+		if (navigator.geolocation && !userLocation) {
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					setUserLocation([
+						position.coords.longitude,
+						position.coords.latitude,
+					]);
+				},
+				() => {
+					setUserLocation([-122.4, 37.74]);
+				},
+				{
+					enableHighAccuracy: false,
+					timeout: 10000,
+					maximumAge: 5 * 60 * 1000,
+				},
+			);
+		} else if (!navigator.geolocation && !userLocation) {
+			setUserLocation([-122.4, 37.74]);
+		}
+	}, [userLocation, setUserLocation]);
 
-  // Request user location
-  useEffect(() => {
-    if (navigator.geolocation && !userLocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation([position.coords.longitude, position.coords.latitude])
-        },
-        (error) => {
-          console.error("Error getting user location:", error)
-          // Fallback location if denied (e.g. San Francisco)
-          setUserLocation([-122.4, 37.74])
-        }
-      )
-    } else if (!navigator.geolocation && !userLocation) {
-      setUserLocation([-122.4, 37.74])
-    }
-  }, [userLocation, setUserLocation])
+	if (!isLoaded || !isSignedIn) {
+		return (
+			<div className="flex h-screen items-center justify-center bg-[#09090b]">
+				<div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+			</div>
+		);
+	}
 
-  if (!isLoaded || !isSignedIn) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-[#09090b]">
-        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
+	return (
+		<div className="relative h-screen w-full overflow-hidden bg-[#09090b] text-white">
+			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_30%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_26%)]" />
 
-  return (
-    <div className="relative w-full h-screen bg-[#09090b] overflow-hidden font-sans">
-      {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/5">
-          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-          <span className="text-sm font-bold text-white tracking-tight">AirSentinel</span>
-          <span className="text-[9px] tracking-[0.2em] text-zinc-500 uppercase">OS</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-zinc-500 hidden sm:block">
-            Welcome, {user?.firstName ?? 'Agent'}
-          </span>
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: 'w-8 h-8',
-              },
-            }}
-          />
-        </div>
-      </div>
+			<div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between px-4 py-4 sm:px-6">
+				<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-black/55 px-4 py-3 backdrop-blur-md">
+					<div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+					<span className="font-display text-sm font-bold tracking-tight text-white">
+						AirSentinel
+					</span>
+					<span className="text-[9px] uppercase tracking-[0.2em] text-zinc-500">
+						OS
+					</span>
+				</div>
+				<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-black/40 px-3 py-2 backdrop-blur-md">
+					<span className="hidden text-xs text-zinc-400 sm:block">
+						Welcome, {user?.firstName ?? "Agent"}
+					</span>
+					<UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+				</div>
+			</div>
 
-      {/* 3D Map */}
-      <div className="absolute inset-0 z-0">
-        <CityMap routeSegments={routeSegments} userLocation={userLocation} />
-      </div>
+			<Suspense fallback={<MapSkeleton />}>
+				<div className="absolute inset-0 z-0">
+					<CityMap routeSegments={routeSegments} userLocation={userLocation} />
+				</div>
+			</Suspense>
 
-      {/* Dashboard Overlays */}
-      <div className="absolute inset-0 pointer-events-none z-10">
-        <SmartAlerts />
-        <GovView />
-        <CitizenView />
-      </div>
-    </div>
-  )
+			<Suspense fallback={<OverlaySkeleton />}>
+				<div className="absolute inset-0 z-10 pointer-events-none">
+					<SmartAlerts />
+					<GovView />
+					<CitizenView />
+				</div>
+			</Suspense>
+		</div>
+	);
 }

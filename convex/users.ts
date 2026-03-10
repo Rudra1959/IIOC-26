@@ -1,47 +1,47 @@
-import { mutation, query } from './_generated/server'
-import { v } from 'convex/values'
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
 export const getOrCreate = mutation({
-  args: {
-    clerkId: v.string(),
-    email: v.string(),
-    name: v.optional(v.string()),
-    avatarUrl: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query('users')
-      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
-      .first()
+	args: {
+		clerkId: v.string(),
+		email: v.string(),
+		name: v.optional(v.string()),
+		avatarUrl: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const existing = await ctx.db
+			.query("users")
+			.withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+			.first();
 
-    if (existing) {
-      // Update name/avatar if changed
-      await ctx.db.patch(existing._id, {
-        name: args.name,
-        avatarUrl: args.avatarUrl,
-      })
-      return existing._id
-    }
+		if (existing) {
+			// Update name/avatar if changed
+			await ctx.db.patch(existing._id, {
+				name: args.name,
+				avatarUrl: args.avatarUrl,
+			});
+			return existing._id;
+		}
 
-    return await ctx.db.insert('users', {
-      clerkId: args.clerkId,
-      email: args.email,
-      name: args.name,
-      avatarUrl: args.avatarUrl,
-      createdAt: Date.now(),
-      xp: 0,
-      level: 1,
-      badges: ['Scout'],
-    })
-  },
-})
+		return await ctx.db.insert("users", {
+			clerkId: args.clerkId,
+			email: args.email,
+			name: args.name,
+			avatarUrl: args.avatarUrl,
+			createdAt: Date.now(),
+			xp: 0,
+			level: 1,
+			badges: ["Scout"],
+		});
+	},
+});
 
 export const getByClerkId = query({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query('users')
-      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
-      .first()
-  },
-})
+	args: { clerkId: v.string() },
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("users")
+			.withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+			.first();
+	},
+});
