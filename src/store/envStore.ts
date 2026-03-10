@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { CleanZoneDestination } from '#/lib/air-quality'
 
 interface Source {
   score: number
@@ -13,8 +14,8 @@ interface EnvState {
   cityAverageUHI: number
   identifiedSources: Source[]
   setInsights: (data: { cityAverageUHI: number; identifiedSources: Source[] }) => void
-  greenDestination: [number, number] | null
-  setGreenDestination: (location: [number, number] | null) => void
+  greenDestination: CleanZoneDestination | null
+  setGreenDestination: (location: CleanZoneDestination | null) => void
 }
 
 export const useEnvStore = create<EnvState>((set) => ({
