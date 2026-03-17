@@ -15,6 +15,8 @@ type MapFocusMode = "user" | "search" | "green";
 interface EnvState {
 	userLocation: [number, number] | null;
 	setUserLocation: (location: [number, number]) => void;
+	currentAqi: number | null;
+	setCurrentAqi: (aqi: number | null) => void;
 	cityAverageUHI: number;
 	identifiedSources: Source[];
 	setInsights: (data: {
@@ -36,6 +38,10 @@ interface EnvState {
 	addRecentSearch: (place: PlaceSearchResult) => void;
 	mapFocus: MapFocusMode;
 	setMapFocus: (focus: MapFocusMode) => void;
+	mapOverlay: "aqi" | "heat" | "noise";
+	setMapOverlay: (overlay: "aqi" | "heat" | "noise") => void;
+	routePreference: "fastest" | "cleanest";
+	setRoutePreference: (pref: "fastest" | "cleanest") => void;
 }
 
 export const useEnvStore = create<EnvState>()(
@@ -43,6 +49,8 @@ export const useEnvStore = create<EnvState>()(
 		(set) => ({
 			userLocation: null,
 			setUserLocation: (location) => set({ userLocation: location }),
+			currentAqi: null,
+			setCurrentAqi: (aqi) => set({ currentAqi: aqi }),
 			cityAverageUHI: 25,
 			identifiedSources: [],
 			setInsights: (data) =>
@@ -99,6 +107,10 @@ export const useEnvStore = create<EnvState>()(
 				})),
 			mapFocus: "user",
 			setMapFocus: (focus) => set({ mapFocus: focus }),
+			mapOverlay: "aqi",
+			setMapOverlay: (overlay) => set({ mapOverlay: overlay }),
+			routePreference: "fastest",
+			setRoutePreference: (pref) => set({ routePreference: pref }),
 		}),
 		{
 			name: "airsentinel-env-store",

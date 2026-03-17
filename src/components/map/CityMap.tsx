@@ -80,15 +80,16 @@ function generateLocalImpactData(
 	centerLng: number,
 ): ImpactData[] {
 	const points: ImpactData[] = [];
-	for (let i = 0; i < 60; i++) {
-		const lat = centerLat + (Math.random() - 0.5) * 0.03;
-		const lng = centerLng + (Math.random() - 0.5) * 0.03;
+	for (let i = 0; i < 400; i++) {
+		const angle = Math.random() * Math.PI * 2;
+		const radius = Math.random() * 0.04;
+		const lat = centerLat + Math.cos(angle) * radius;
+		const lng = centerLng + Math.sin(angle) * radius * 1.3;
 		const dist = Math.sqrt((lat - centerLat) ** 2 + (lng - centerLng) ** 2);
 		const score = Math.max(
 			5,
-			Math.min(95, Math.round(40 + Math.random() * 45 - dist * 1500)),
+			Math.min(95, Math.round(40 + Math.random() * 50 - dist * 1200)),
 		);
-
 		points.push({ id: `impact-${i}`, position: [lng, lat], score });
 	}
 	return points;
@@ -115,6 +116,39 @@ function buildDirectRoute(
 	};
 }
 
+// Color schemes for different overlay modes
+function getCircleColors(
+	score: number,
+	mode: "aqi" | "heat" | "noise",
+): [number, number, number, number] {
+	if (mode === "aqi") {
+		if (score > 80) return [220, 38, 38, 220]; // Red
+		if (score > 60) return [249, 115, 22, 200]; // Orange
+		if (score > 40) return [250, 204, 21, 180]; // Yellow
+		if (score > 20) return [34, 197, 94, 160]; // Green
+		return [16, 185, 129, 140]; // Emerald
+	}
+	if (mode === "heat") {
+		if (score > 80) return [153, 27, 27, 230]; // Dark red
+		if (score > 60) return [220, 38, 38, 210]; // Red
+		if (score > 40) return [234, 88, 12, 190]; // Orange
+		if (score > 20) return [250, 204, 21, 170]; // Yellow
+		return [254, 240, 138, 150]; // Light yellow
+	}
+	// noise
+	const inverted = 100 - score;
+	if (inverted > 80) return [88, 28, 135, 230]; // Deep purple
+	if (inverted > 60) return [126, 34, 206, 210]; // Purple
+	if (inverted > 40) return [168, 85, 247, 190]; // Violet
+	if (inverted > 20) return [192, 132, 252, 170]; // Light violet
+	return [216, 180, 254, 150]; // Pale lavender
+}
+
+function getCircleRadius(score: number, mode: "aqi" | "heat" | "noise"): number {
+	const base = mode === "noise" ? 100 - score : score;
+	return 80 + base * 2.5;
+}
+
 export function CityMap({
 	routeSegments,
 	userLocation,
@@ -129,6 +163,7 @@ export function CityMap({
 	const activeSearchPlace = useEnvStore((s) => s.activeSearchPlace);
 	const comparePlaces = useEnvStore((s) => s.comparePlaces);
 	const mapFocus = useEnvStore((s) => s.mapFocus);
+	const mapOverlay = useEnvStore((s) => s.mapOverlay);
 
 	useEffect(() => {
 		if (userLocation) {
@@ -322,32 +357,60 @@ export function CityMap({
 		[generatedRoutes, routeSegments],
 	);
 
-	const layers = useMemo(
-		() => [
+	const layers = useMemo(() => {
+		return [
+			// Main AQI/Heat/Noise circles — outer glow ring for hotspots
+			new ScatterplotLayer<ImpactData>({
+				id: "impact-glow-layer",
+				data: data.filter((d) => {
+					const s = mapOverlay === "noise" ? 100 - d.score : d.score;
+					return s > 60;
+				}),
+				pickable: false,
+				opacity: 0.25,
+				filled: true,
+				radiusScale: 1,
+				radiusMinPixels: 8,
+				radiusMaxPixels: 200,
+				getPosition: (datum) => datum.position,
+				getFillColor: (datum) =>
+					getCircleColors(datum.score, mapOverlay) as unknown as [
+						number,
+						number,
+						number,
+						number,
+					],
+				getRadius: (datum) => getCircleRadius(datum.score, mapOverlay) * 1.8,
+				transitions: {
+					getRadius: { duration: 1500, type: "spring" },
+					getFillColor: { duration: 800 },
+				},
+			}),
+			// Main circles
 			new ScatterplotLayer<ImpactData>({
 				id: "impact-circles-layer",
 				data,
 				pickable: true,
-				opacity: 0.8,
+				opacity: 0.75,
 				stroked: true,
 				filled: true,
 				radiusScale: 1,
-				radiusMinPixels: 5,
-				radiusMaxPixels: 100,
-				lineWidthMinPixels: 2,
+				radiusMinPixels: 4,
+				radiusMaxPixels: 120,
+				lineWidthMinPixels: 1,
 				getPosition: (datum) => datum.position,
-				getFillColor: (datum) => {
-					const score = datum.score;
-					if (score > 75) return [255, 50, 50, 200];
-					if (score > 50) return [255, 165, 0, 180];
-					if (score > 25) return [255, 220, 0, 150];
-					return [50, 200, 80, 150];
-				},
-				getLineColor: [255, 255, 255, 60],
-				getRadius: 150,
+				getFillColor: (datum) =>
+					getCircleColors(datum.score, mapOverlay) as unknown as [
+						number,
+						number,
+						number,
+						number,
+					],
+				getLineColor: [255, 255, 255, 40],
+				getRadius: (datum) => getCircleRadius(datum.score, mapOverlay),
 				transitions: {
 					getRadius: { duration: 1000, type: "spring" },
-					getFillColor: { duration: 1000 },
+					getFillColor: { duration: 800 },
 				},
 			}),
 			new PathLayer<GeneratedRoute>({
@@ -497,23 +560,33 @@ export function CityMap({
 						}),
 					]
 				: []),
-		],
-		[
-			combinedRouteSegments,
-			compareMarkers,
-			data,
-			greenMarker,
-			searchMarker,
-			userLocation,
-		],
-	);
+		];
+	}, [
+		combinedRouteSegments,
+		compareMarkers,
+		data,
+		greenMarker,
+		mapOverlay,
+		searchMarker,
+		userLocation,
+	]);
 
 	const tooltipRenderer = ({
 		object,
 	}: PickingInfo<ImpactData | MarkerData | GeneratedRoute>) => {
 		if (object && "score" in object && object.score != null) {
+			const modeLabel =
+				mapOverlay === "aqi"
+					? "AQI Score"
+					: mapOverlay === "heat"
+						? "Heat Index"
+						: "Noise Level";
+			const displayValue =
+				mapOverlay === "noise"
+					? Math.round(100 - object.score)
+					: Math.round(object.score);
 			return {
-				html: `<div style="background:#09090b;border:1px solid #27272a;padding:12px 16px;border-radius:12px;font-family:monospace;color:#fff"><p style="font-size:10px;color:#71717a;margin:0 0 4px;text-transform:uppercase;">Impact Metric</p><p style="font-size:28px;font-weight:900;margin:0;color:${object.score > 75 ? "#ef4444" : object.score > 50 ? "#f97316" : "#22c55e"}">${Math.round(object.score)}</p></div>`,
+				html: `<div style="background:#09090b;border:1px solid #27272a;padding:12px 16px;border-radius:12px;font-family:monospace;color:#fff"><p style="font-size:10px;color:#71717a;margin:0 0 4px;text-transform:uppercase;">${modeLabel}</p><p style="font-size:28px;font-weight:900;margin:0;color:${object.score > 75 ? "#ef4444" : object.score > 50 ? "#f97316" : "#22c55e"}">${displayValue}</p></div>`,
 				style: { background: "transparent", padding: "0", border: "none" },
 			};
 		}

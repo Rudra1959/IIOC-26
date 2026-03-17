@@ -9,6 +9,7 @@ import ClerkProvider from "../integrations/clerk/provider";
 import ConvexProvider from "../integrations/convex/provider";
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
 import appCss from "../styles.css?url";
+import { DynamicBackground } from "../components/DynamicBackground";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
@@ -36,7 +37,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 			{
 				rel: "stylesheet",
-				href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+				href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;700;900&display=swap",
 			},
 		],
 	}),
@@ -53,6 +54,7 @@ function RootComponent() {
 				<ClerkProvider>
 					<ConvexProvider>
 						<TanStackQueryProvider>
+							<DynamicBackground />
 							<Outlet />
 						</TanStackQueryProvider>
 					</ConvexProvider>

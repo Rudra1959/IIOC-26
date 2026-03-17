@@ -25,7 +25,7 @@ import {
 	Wind,
 	X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { type AqiBand, getNearestCleanZone } from "../../lib/air-quality";
@@ -256,6 +256,9 @@ export function CitizenView() {
 	const recentSearches = useEnvStore((s) => s.recentSearches);
 	const addRecentSearch = useEnvStore((s) => s.addRecentSearch);
 	const setMapFocus = useEnvStore((s) => s.setMapFocus);
+	const setCurrentAqi = useEnvStore((s) => s.setCurrentAqi);
+	const mapOverlay = useEnvStore((s) => s.mapOverlay);
+	const setMapOverlay = useEnvStore((s) => s.setMapOverlay);
 
 	const [activeMetric, setActiveMetric] = useState<string | null>(null);
 	const [placeQuery, setPlaceQuery] = useState("");
@@ -335,6 +338,13 @@ export function CitizenView() {
 
 	const localEnvironment = localEnvironmentQuery.data;
 	const searchedEnvironment = searchedEnvironmentQuery.data;
+
+	useEffect(() => {
+		if (localEnvironment?.aqi != null) {
+			setCurrentAqi(localEnvironment.aqi);
+		}
+	}, [localEnvironment?.aqi, setCurrentAqi]);
+
 	const isActivePlaceCompared = Boolean(
 		activeSearchPlace &&
 			comparePlaces.some((place) => place.id === activeSearchPlace.id),
@@ -588,6 +598,30 @@ export function CitizenView() {
 							className="rounded-xl border border-white/10 px-3 py-2 text-[11px] font-semibold text-zinc-300 transition-colors hover:bg-white/5"
 						>
 							My Area
+						</button>
+					</div>
+					
+					<div className="mt-4 flex gap-2 border-t border-white/5 pt-4">
+						<button
+							type="button"
+							onClick={() => setMapOverlay("aqi")}
+							className={`flex-1 rounded-xl border px-2 py-2 text-[11px] font-bold transition-colors ${mapOverlay === "aqi" ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300" : "border-white/10 bg-black/20 text-zinc-400 hover:bg-white/5"}`}
+						>
+							3D AQI
+						</button>
+						<button
+							type="button"
+							onClick={() => setMapOverlay("heat")}
+							className={`flex-1 rounded-xl border px-2 py-2 text-[11px] font-bold transition-colors ${mapOverlay === "heat" ? "border-orange-500/50 bg-orange-500/20 text-orange-300" : "border-white/10 bg-black/20 text-zinc-400 hover:bg-white/5"}`}
+						>
+							Heat Map
+						</button>
+						<button
+							type="button"
+							onClick={() => setMapOverlay("noise")}
+							className={`flex-1 rounded-xl border px-2 py-2 text-[11px] font-bold transition-colors ${mapOverlay === "noise" ? "border-purple-500/50 bg-purple-500/20 text-purple-300" : "border-white/10 bg-black/20 text-zinc-400 hover:bg-white/5"}`}
+						>
+							Noise
 						</button>
 					</div>
 				</div>
