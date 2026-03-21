@@ -1,8 +1,34 @@
 import { UserButton, useUser } from "@clerk/clerk-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useMemo } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo } from "react";
 import type { RouteSegment } from "#/components/map/CityMap";
+import { calculateAlternativeRoutes } from "#/lib/route-optimizer";
 import { useEnvStore } from "#/store/envStore";
+
+interface ImpactDataPoint {
+	position: [number, number];
+	score: number;
+}
+
+function generateLocalImpactDataProxy(
+	centerLat: number,
+	centerLng: number,
+): ImpactDataPoint[] {
+	const points: ImpactDataPoint[] = [];
+	for (let i = 0; i < 200; i++) {
+		const angle = Math.random() * Math.PI * 2;
+		const radius = Math.random() * 0.06;
+		const lat = centerLat + Math.cos(angle) * radius;
+		const lng = centerLng + Math.sin(angle) * radius * 1.3;
+		const dist = Math.sqrt((lat - centerLat) ** 2 + (lng - centerLng) ** 2);
+		const score = Math.max(
+			5,
+			Math.min(98, Math.round(30 + Math.random() * 60 - dist * 800)),
+		);
+		points.push({ position: [lng, lat], score });
+	}
+	return points;
+}
 
 const CityMap = lazy(() =>
 	import("#/components/map/CityMap").then((module) => ({
@@ -22,6 +48,26 @@ const CitizenView = lazy(() =>
 const SmartAlerts = lazy(() =>
 	import("#/components/dashboard/SmartAlerts").then((module) => ({
 		default: module.SmartAlerts,
+	})),
+);
+const PolicySimulator = lazy(() =>
+	import("#/components/dashboard/PolicySimulator").then((module) => ({
+		default: module.PolicySimulator,
+	})),
+);
+const HexagonDetailPanel = lazy(() =>
+	import("#/components/dashboard/HexagonDetailPanel").then((module) => ({
+		default: module.HexagonDetailPanel,
+	})),
+);
+const BreatheSafeNavigation = lazy(() =>
+	import("#/components/dashboard/BreatheSafeNavigation").then((module) => ({
+		default: module.BreatheSafeNavigation,
+	})),
+);
+const CompareView = lazy(() =>
+	import("#/components/dashboard/CompareView").then((module) => ({
+		default: module.CompareView,
 	})),
 );
 
@@ -51,8 +97,97 @@ function MapSkeleton() {
 function DashboardPage() {
 	const { user, isSignedIn, isLoaded } = useUser();
 	const navigate = useNavigate();
-	const { userLocation, setUserLocation } = useEnvStore();
+	const {
+		userLocation,
+		setUserLocation,
+		greenDestination,
+		setGreenDestination,
+		activeSearchPlace,
+		setNavigationRoutes,
+		setShowNavigationPanel,
+		focusMode,
+		setFocusMode,
+		setMapFocus,
+		selectedRouteId,
+		setSelectedRouteId,
+	} = useEnvStore();
 	const routeSegments = useMemo<RouteSegment[]>(() => [], []);
+
+	const handleRouteSelect = (routeId: string) => {
+		setSelectedRouteId(routeId);
+	};
+
+	const handleClearRoute = () => {
+		setNavigationRoutes({});
+		setSelectedRouteId(null);
+		setGreenDestination(null);
+	};
+
+	const computeRoutes = useCallback(async () => {
+		if (!userLocation) return;
+		if (greenDestination) {
+			try {
+				const impactData = generateLocalImpactDataProxy(
+					userLocation[1],
+					userLocation[0],
+				);
+				const routes = await calculateAlternativeRoutes(
+					{ longitude: userLocation[0], latitude: userLocation[1] },
+					{
+						longitude: greenDestination.coordinates[0],
+						latitude: greenDestination.coordinates[1],
+					},
+					impactData,
+				);
+
+				const fastest = routes.find((r) => r.id === "fastest");
+				const cleanest = routes.find((r) => r.id === "cleanest");
+
+				setNavigationRoutes({
+					fastest: fastest
+						? {
+								coordinates: fastest.coordinates,
+								duration: fastest.duration,
+								distance: fastest.distance,
+								aqi: fastest.aqi,
+							}
+						: undefined,
+					cleanest: cleanest
+						? {
+								coordinates: cleanest.coordinates,
+								duration: cleanest.duration,
+								distance: cleanest.distance,
+								aqi: cleanest.aqi,
+							}
+						: undefined,
+				});
+				setShowNavigationPanel(true);
+			} catch {
+				// Routes unavailable
+			}
+		}
+	}, [
+		userLocation,
+		greenDestination,
+		setNavigationRoutes,
+		setShowNavigationPanel,
+	]);
+
+	useEffect(() => {
+		void computeRoutes();
+	}, [computeRoutes]);
+
+	useEffect(() => {
+		if (!greenDestination && !activeSearchPlace) {
+			setNavigationRoutes({});
+			setSelectedRouteId(null);
+		}
+	}, [
+		greenDestination,
+		activeSearchPlace,
+		setNavigationRoutes,
+		setSelectedRouteId,
+	]);
 
 	useEffect(() => {
 		if (isLoaded && !isSignedIn) {
@@ -104,6 +239,26 @@ function DashboardPage() {
 					<span className="text-[9px] uppercase tracking-[0.2em] text-zinc-500">
 						OS
 					</span>
+					<button
+						type="button"
+						onClick={() => setMapFocus("user")}
+						className="rounded-lg px-2 py-1 text-[10px] font-semibold text-emerald-400 transition-colors bg-emerald-500/10 hover:bg-emerald-500/20"
+						title="Center on my location"
+					>
+						My Location
+					</button>
+					<button
+						type="button"
+						onClick={() => setFocusMode(!focusMode)}
+						className={`ml-1 rounded-lg px-2 py-1 text-[10px] font-semibold transition-colors ${
+							focusMode
+								? "bg-emerald-500/30 text-emerald-300"
+								: "bg-white/5 text-zinc-500 hover:bg-white/10"
+						}`}
+						title={focusMode ? "Exit focus mode" : "Focus mode — hide panels"}
+					>
+						{focusMode ? "FOCUS ON" : "FOCUS"}
+					</button>
 				</div>
 				<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-black/40 px-3 py-2 backdrop-blur-md">
 					<span className="hidden text-xs text-zinc-400 sm:block">
@@ -121,9 +276,33 @@ function DashboardPage() {
 
 			<Suspense fallback={<OverlaySkeleton />}>
 				<div className="absolute inset-0 z-10 pointer-events-none">
-					<SmartAlerts />
-					<GovView />
-					<CitizenView />
+					<CompareView />
+					{!focusMode && (
+						<>
+							<SmartAlerts />
+							<PolicySimulator />
+							<GovView />
+							<HexagonDetailPanel />
+							<BreatheSafeNavigation
+								routes={[]}
+								onSelectRoute={handleRouteSelect}
+								selectedRouteId={selectedRouteId ?? undefined}
+								onClearRoute={handleClearRoute}
+							/>
+							<CitizenView />
+						</>
+					)}
+					{focusMode && (
+						<>
+							<HexagonDetailPanel />
+							<BreatheSafeNavigation
+								routes={[]}
+								onSelectRoute={handleRouteSelect}
+								selectedRouteId={selectedRouteId ?? undefined}
+								onClearRoute={handleClearRoute}
+							/>
+						</>
+					)}
 				</div>
 			</Suspense>
 		</div>

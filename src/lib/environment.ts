@@ -21,6 +21,23 @@ const WEATHER_CURRENT_FIELDS = [
 	"weather_code",
 ];
 
+const WEATHER_HOURLY_FIELDS = [
+	"temperature_2m",
+	"relative_humidity_2m",
+	"wind_speed_10m",
+	"precipitation_probability",
+];
+
+const AIR_QUALITY_HOURLY_FIELDS = [
+	"us_aqi",
+	"pm2_5",
+	"pm10",
+	"nitrogen_dioxide",
+	"ozone",
+	"sulphur_dioxide",
+	"dust",
+];
+
 const AIR_QUALITY_CURRENT_FIELDS = [
 	"us_aqi",
 	"european_aqi",
@@ -276,8 +293,14 @@ function describeWeatherCode(weatherCode: number | null | undefined) {
 	}
 }
 
-function toNumber(value: number | null | undefined) {
-	return typeof value === "number" && Number.isFinite(value) ? value : null;
+function toNumber(value: number | string | null | undefined) {
+	if (value === null || value === undefined) return null;
+	if (typeof value === "number" && Number.isFinite(value)) return value;
+	if (typeof value === "string") {
+		const parsed = Number.parseFloat(value);
+		return Number.isFinite(parsed) ? parsed : null;
+	}
+	return null;
 }
 
 export async function searchPlaces(
@@ -430,4 +453,301 @@ export async function fetchEnvironmentalSnapshot({
 	setCachedValue(snapshotCache, cacheKey, snapshot, SNAPSHOT_CACHE_TTL_MS);
 
 	return snapshot;
+}
+
+export interface WindGridPoint {
+	latitude: number;
+	longitude: number;
+	speed: number;
+	direction: number;
+}
+
+export interface WindGridData {
+	points: WindGridPoint[];
+	fetchedAt: number;
+}
+
+export interface HourlyForecast {
+	time: string;
+	aqi: number;
+	pm25: number;
+	temperature: number;
+	windSpeed: number;
+}
+
+export interface AirQualityCalculations {
+	dailyExposureDose: number;
+	bestTimeToGoOut: { start: string; end: string; aqi: number } | null;
+	trendPercent: number;
+	dominantPollutant: string;
+	healthScore: number;
+	cityComparison: { percentBetter: number; cityAvgAqi: number };
+}
+
+export async function fetchHourlyForecast({
+	latitude,
+	longitude,
+}: {
+	latitude: number;
+	longitude: number;
+}): Promise<HourlyForecast[]> {
+	const weatherUrl = buildUrl(WEATHER_ENDPOINT, {
+		latitude: String(latitude),
+		longitude: String(longitude),
+		hourly: WEATHER_HOURLY_FIELDS.join(","),
+		forecast_days: "1",
+		timezone: "auto",
+	});
+
+	const airQualityUrl = buildUrl(AIR_QUALITY_ENDPOINT, {
+		latitude: String(latitude),
+		longitude: String(longitude),
+		hourly: AIR_QUALITY_HOURLY_FIELDS.join(","),
+		forecast_days: "1",
+		timezone: "auto",
+	});
+
+	try {
+		const [weatherData, airQualityData] = await Promise.all([
+			fetchJson<{ hourly?: Record<string, (string | number)[]> }>(weatherUrl),
+			fetchJson<{ hourly?: Record<string, (string | number)[]> }>(
+				airQualityUrl,
+			),
+		]);
+
+		const weatherHourly = weatherData.hourly;
+		const airHourly = airQualityData.hourly;
+
+		if (!weatherHourly || !airHourly) {
+			return generateMockHourlyForecast();
+		}
+
+		const times = weatherHourly.time || airHourly.time || [];
+		const forecasts: HourlyForecast[] = [];
+
+		for (let i = 0; i < Math.min(times.length, 24); i++) {
+			forecasts.push({
+				time: String(times[i] ?? ""),
+				aqi: toNumber(airHourly.us_aqi?.[i]) ?? 50,
+				pm25: toNumber(airHourly.pm2_5?.[i]) ?? 15,
+				temperature: toNumber(weatherHourly.temperature_2m?.[i]) ?? 20,
+				windSpeed: toNumber(weatherHourly.wind_speed_10m?.[i]) ?? 5,
+			});
+		}
+
+		return forecasts;
+	} catch {
+		return generateMockHourlyForecast();
+	}
+}
+
+function generateMockHourlyForecast(): HourlyForecast[] {
+	const now = new Date();
+	const forecasts: HourlyForecast[] = [];
+
+	for (let i = 0; i < 24; i++) {
+		const hour = (now.getHours() + i) % 24;
+		const isPeak = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19);
+		const baseAqi = isPeak ? 80 + Math.random() * 40 : 30 + Math.random() * 30;
+
+		forecasts.push({
+			time: new Date(now.getTime() + i * 60 * 60 * 1000).toISOString(),
+			aqi: Math.round(baseAqi),
+			pm25: Math.round(baseAqi * 0.4),
+			temperature: 20 + Math.sin(((hour - 6) * Math.PI) / 12) * 8,
+			windSpeed: 5 + Math.random() * 10,
+		});
+	}
+
+	return forecasts;
+}
+
+export function calculateAirQualityMetrics(
+	currentSnapshot: EnvironmentalSnapshot,
+	hourlyForecast: HourlyForecast[],
+	cityAvgAqi: number = 75,
+): AirQualityCalculations {
+	const pm25 = currentSnapshot.pm25 ?? 20;
+
+	const dailyExposureDose = pm25 * 24 * 0.001;
+
+	const cleanHours = hourlyForecast
+		.filter((h) => h.aqi < 50)
+		.sort((a, b) => a.aqi - b.aqi);
+
+	let bestTime: { start: string; end: string; aqi: number } | null = null;
+	if (cleanHours.length > 0) {
+		const best = cleanHours[0];
+		const time = new Date(best.time);
+		bestTime = {
+			start: time.toLocaleTimeString([], {
+				hour: "2-digit",
+				minute: "2-digit",
+			}),
+			end: new Date(time.getTime() + 2 * 60 * 60 * 1000).toLocaleTimeString(
+				[],
+				{ hour: "2-digit", minute: "2-digit" },
+			),
+			aqi: best.aqi,
+		};
+	}
+
+	const trendPercent =
+		cityAvgAqi > 0
+			? Math.round(
+					((cityAvgAqi - (currentSnapshot.aqi ?? 50)) / cityAvgAqi) * 100,
+				)
+			: 0;
+
+	const dominantPollutant = getDominantPollutant(currentSnapshot);
+
+	const healthScore = calculateHealthScore(currentSnapshot.aqi ?? 50, pm25);
+
+	const percentBetter =
+		cityAvgAqi > 0 && currentSnapshot.aqi
+			? Math.round(((cityAvgAqi - currentSnapshot.aqi) / cityAvgAqi) * 100)
+			: 0;
+
+	return {
+		dailyExposureDose: Math.round(dailyExposureDose * 1000) / 1000,
+		bestTimeToGoOut: bestTime,
+		trendPercent,
+		dominantPollutant,
+		healthScore,
+		cityComparison: {
+			percentBetter,
+			cityAvgAqi,
+		},
+	};
+}
+
+function getDominantPollutant(snapshot: EnvironmentalSnapshot): string {
+	const pollutants = [
+		{
+			name: "PM2.5 (Dust/Combustion)",
+			value: snapshot.pm25 ?? 0,
+			threshold: 35,
+		},
+		{ name: "PM10 (Coarse Dust)", value: snapshot.pm10 ?? 0, threshold: 50 },
+		{
+			name: "NO₂ (Vehicle Emissions)",
+			value: snapshot.nitrogenDioxide ?? 0,
+			threshold: 40,
+		},
+		{ name: "O₃ (Ground Ozone)", value: snapshot.ozone ?? 0, threshold: 100 },
+		{
+			name: "SO₂ (Industrial)",
+			value: snapshot.sulphurDioxide ?? 0,
+			threshold: 20,
+		},
+		{
+			name: "CO (Combustion)",
+			value: snapshot.carbonMonoxide ?? 0,
+			threshold: 2,
+		},
+	];
+
+	const ratios = pollutants.map((p) => ({
+		...p,
+		ratio: p.threshold > 0 ? p.value / p.threshold : 0,
+	}));
+
+	const dominant = ratios.reduce((max, curr) =>
+		curr.ratio > max.ratio ? curr : max,
+	);
+
+	return dominant.name;
+}
+
+function calculateHealthScore(aqi: number, pm25: number): number {
+	const aqiScore = Math.max(0, 100 - aqi);
+	const pm25Score = Math.max(0, 100 - pm25 * 2);
+	return Math.round(aqiScore * 0.6 + pm25Score * 0.4);
+}
+
+export async function fetchCityAqiAverage(cityName: string): Promise<number> {
+	try {
+		const results = await searchPlaces(cityName, 5);
+		if (results.length === 0) return 75;
+
+		const snapshots = await Promise.all(
+			results.slice(0, 3).map((r) =>
+				fetchEnvironmentalSnapshot({
+					latitude: r.latitude,
+					longitude: r.longitude,
+					label: r.name,
+				}),
+			),
+		);
+
+		const validAqi = snapshots
+			.map((s) => s.aqi)
+			.filter((a): a is number => a !== null);
+
+		if (validAqi.length === 0) return 75;
+
+		return Math.round(validAqi.reduce((a, b) => a + b, 0) / validAqi.length);
+	} catch {
+		return 75;
+	}
+}
+
+export async function fetchWindGrid({
+	centerLat,
+	centerLng,
+	gridSize = 6,
+}: {
+	centerLat: number;
+	centerLng: number;
+	gridSize?: number;
+}): Promise<WindGridData> {
+	const points: WindGridPoint[] = [];
+	const latStep = 0.015;
+	const lngStep = 0.02;
+
+	for (let i = 0; i < gridSize; i++) {
+		for (let j = 0; j < gridSize; j++) {
+			const lat =
+				centerLat -
+				(latStep * gridSize) / 2 +
+				i * latStep +
+				Math.random() * 0.005;
+			const lng =
+				centerLng -
+				(lngStep * gridSize) / 2 +
+				j * lngStep +
+				Math.random() * 0.005;
+
+			const url = buildUrl(WEATHER_ENDPOINT, {
+				latitude: String(lat),
+				longitude: String(lng),
+				current: "wind_speed_10m,wind_direction_10m",
+				wind_speed_unit: "kmh",
+				timezone: "auto",
+			});
+
+			try {
+				const data = await fetchJson<OpenMeteoCurrentResponse>(url);
+				const current = data.current ?? {};
+				points.push({
+					latitude: lat,
+					longitude: lng,
+					speed: toNumber(current.wind_speed_10m) ?? 5,
+					direction: toNumber(current.wind_direction_10m) ?? 180,
+				});
+			} catch {
+				points.push({
+					latitude: lat,
+					longitude: lng,
+					speed: 5 + Math.random() * 5,
+					direction: 180 + Math.random() * 60,
+				});
+			}
+		}
+	}
+
+	return {
+		points,
+		fetchedAt: Date.now(),
+	};
 }

@@ -198,3 +198,312 @@
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.12);
 }
+
+/* ── AirSentinel OS Animations ── */
+
+/* Live data pulse effect */
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+}
+
+.animate-live-pulse {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Hazard zone pulse */
+@keyframes hazard-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.animate-hazard-pulse {
+  animation: hazard-pulse 2s ease-in-out infinite;
+}
+
+/* Scanning effect */
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.5;
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.animate-scan {
+  animation: scan 3s ease-in-out infinite;
+}
+
+/* Data sync indicator */
+@keyframes data-sync {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  50% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -100;
+  }
+}
+
+.animate-data-sync {
+  animation: data-sync 2s linear infinite;
+}
+
+/* Wind flow animation */
+@keyframes wind-flow {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(200%);
+    opacity: 0;
+  }
+}
+
+.animate-wind-flow {
+  animation: wind-flow 3s ease-out infinite;
+}
+
+/* Grid shimmer effect */
+@keyframes grid-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-grid-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.02) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: grid-shimmer 4s linear infinite;
+}
+
+/* 3D mode toggle glow */
+@keyframes gov-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.6);
+  }
+}
+
+.animate-gov-glow {
+  animation: gov-glow 2s ease-in-out infinite;
+}
+
+/* Glass panel depth effect */
+.glass-panel {
+  background: rgba(9, 9, 11, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel-deep {
+  background: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* AQI meter gradient */
+.aqi-gradient-good {
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+}
+
+.aqi-gradient-moderate {
+  background: linear-gradient(90deg, #eab308 0%, #ca8a04 100%);
+}
+
+.aqi-gradient-unhealthy-sensitive {
+  background: linear-gradient(90deg, #f97316 0%, #ea580c 100%);
+}
+
+.aqi-gradient-unhealthy {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.aqi-gradient-very-unhealthy {
+  background: linear-gradient(90deg, #a855f7 0%, #9333ea 100%);
+}
+
+.aqi-gradient-hazardous {
+  background: linear-gradient(90deg, #7f1d1d 0%, #450a0a 100%);
+}
+
+/* Unit label styling */
+.unit-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+
+/* Z-index layering */
+.z-map { z-index: 0; }
+.z-panels { z-index: 10; }
+.z-header { z-index: 20; }
+.z-map-controls { z-index: 15; }
+.z-notifications { z-index: 30; }
+.z-modal { z-index: 50; }
+.z-toast { z-index: 60; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Panel Glassmorphism */
+.panel-glass {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(9, 9, 11, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.panel-glass:hover {
+  background: rgba(9, 9, 11, 0.88);
+  border-color: rgba(255, 255, 255, 0.13);
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.08);
+}
+
+/* Risk Rising Pulse */
+@keyframes risk-pulse {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.15);
+  }
+}
+
+.animate-risk-pulse {
+  animation: risk-pulse 2s ease-in-out infinite;
+}
+
+/* Wind Flow Animation */
+@keyframes wind-flow {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+  100% { opacity: 0.4; }
+}
+
+.animate-wind-flow {
+  animation: wind-flow 3s ease-in-out infinite;
+}
+
+/* Pillar Shake for Hazardous */
+@keyframes pillar-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-0.5px); }
+  75% { transform: translateX(0.5px); }
+}
+
+.animate-pillar-shake {
+  animation: pillar-shake 0.3s ease-in-out infinite;
+}
+
+/* H3 Shatter In Animation */
+@keyframes shatter-in {
+  0% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-shatter-in {
+  animation: shatter-in 0.4s ease-out forwards;
+}
+
+/* Streamline Flow */
+@keyframes streamline-flow {
+  0% { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-streamline {
+  animation: streamline-flow 2s linear infinite;
+}
+
+/* Gov Glow Effect */
+@keyframes gov-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15), 0 0 40px rgba(59, 130, 246, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.25), 0 0 60px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.animate-gov-glow {
+  animation: gov-glow 3s ease-in-out infinite;
+}
+
+/* Compass Needle */
+@keyframes compass-sweep {
+  0%, 100% { transform: rotate(var(--needle-deg, 0deg)); }
+  50% { transform: rotate(calc(var(--needle-deg, 0deg) + 5deg)); }
+}
+
+.animate-compass-sweep {
+  animation: compass-sweep 4s ease-in-out infinite;
+  transform-origin: center;
+}

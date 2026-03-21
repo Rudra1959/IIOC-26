@@ -26,7 +26,7 @@ const CLEAN_ZONE_TEMPLATES = [
 		note: "Dense canopy and low roadside exposure.",
 	},
 	{
-		name: "Lakeside Fresh Air Loop",
+		name: "Optimized Respiratory Zone",
 		offset: [0.01, -0.006] as [number, number],
 		note: "Open breezeways help disperse trapped pollutants.",
 	},

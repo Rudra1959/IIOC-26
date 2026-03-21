@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { CleanZoneDestination } from "#/lib/air-quality";
-import type { PlaceSearchResult } from "#/lib/environment";
+import type {
+	AirQualityCalculations,
+	HourlyForecast,
+	PlaceSearchResult,
+} from "#/lib/environment";
 
 interface Source {
 	score: number;
@@ -11,6 +15,103 @@ interface Source {
 }
 
 type MapFocusMode = "user" | "search" | "green";
+
+export interface RegionProfile {
+	id: string;
+	name: string;
+	country: string;
+	defaultAqi: number;
+}
+
+const POPULAR_REGIONS: RegionProfile[] = [
+	{ id: "auto", name: "My Location", country: "Auto", defaultAqi: 50 },
+	{ id: "delhi", name: "Delhi NCR", country: "India", defaultAqi: 180 },
+	{ id: "mumbai", name: "Mumbai", country: "India", defaultAqi: 85 },
+	{ id: "bangalore", name: "Bangalore", country: "India", defaultAqi: 65 },
+	{ id: "hyderabad", name: "Hyderabad", country: "India", defaultAqi: 75 },
+	{ id: "chennai", name: "Chennai", country: "India", defaultAqi: 70 },
+	{ id: "kolkata", name: "Kolkata", country: "India", defaultAqi: 110 },
+	{ id: "pune", name: "Pune", country: "India", defaultAqi: 80 },
+	{ id: "jaipur", name: "Jaipur", country: "India", defaultAqi: 120 },
+	{ id: "lucknow", name: "Lucknow", country: "India", defaultAqi: 150 },
+	{ id: "beijing", name: "Beijing", country: "China", defaultAqi: 130 },
+	{ id: "shanghai", name: "Shanghai", country: "China", defaultAqi: 95 },
+	{ id: "guangzhou", name: "Guangzhou", country: "China", defaultAqi: 85 },
+	{ id: "shenzhen", name: "Shenzhen", country: "China", defaultAqi: 75 },
+	{ id: "chengdu", name: "Chengdu", country: "China", defaultAqi: 100 },
+	{ id: "london", name: "London", country: "UK", defaultAqi: 45 },
+	{ id: "paris", name: "Paris", country: "France", defaultAqi: 50 },
+	{ id: "berlin", name: "Berlin", country: "Germany", defaultAqi: 40 },
+	{ id: "madrid", name: "Madrid", country: "Spain", defaultAqi: 55 },
+	{ id: "rome", name: "Rome", country: "Italy", defaultAqi: 60 },
+	{
+		id: "amsterdam",
+		name: "Amsterdam",
+		country: "Netherlands",
+		defaultAqi: 35,
+	},
+	{ id: "stockholm", name: "Stockholm", country: "Sweden", defaultAqi: 25 },
+	{ id: "losangeles", name: "Los Angeles", country: "USA", defaultAqi: 65 },
+	{ id: "newyork", name: "New York", country: "USA", defaultAqi: 45 },
+	{ id: "chicago", name: "Chicago", country: "USA", defaultAqi: 50 },
+	{ id: "houston", name: "Houston", country: "USA", defaultAqi: 55 },
+	{ id: "phoenix", name: "Phoenix", country: "USA", defaultAqi: 70 },
+	{ id: "sanfrancisco", name: "San Francisco", country: "USA", defaultAqi: 35 },
+	{ id: "seattle", name: "Seattle", country: "USA", defaultAqi: 30 },
+	{ id: "denver", name: "Denver", country: "USA", defaultAqi: 40 },
+	{ id: "toronto", name: "Toronto", country: "Canada", defaultAqi: 35 },
+	{ id: "vancouver", name: "Vancouver", country: "Canada", defaultAqi: 25 },
+	{ id: "montreal", name: "Montreal", country: "Canada", defaultAqi: 40 },
+	{ id: "tokyo", name: "Tokyo", country: "Japan", defaultAqi: 55 },
+	{ id: "osaka", name: "Osaka", country: "Japan", defaultAqi: 50 },
+	{ id: "seoul", name: "Seoul", country: "South Korea", defaultAqi: 75 },
+	{ id: "busan", name: "Busan", country: "South Korea", defaultAqi: 65 },
+	{ id: "singapore", name: "Singapore", country: "Singapore", defaultAqi: 40 },
+	{ id: "dubai", name: "Dubai", country: "UAE", defaultAqi: 85 },
+	{ id: "abudhabi", name: "Abu Dhabi", country: "UAE", defaultAqi: 80 },
+	{ id: "riyadh", name: "Riyadh", country: "Saudi Arabia", defaultAqi: 95 },
+	{ id: "bangkok", name: "Bangkok", country: "Thailand", defaultAqi: 90 },
+	{ id: "jakarta", name: "Jakarta", country: "Indonesia", defaultAqi: 110 },
+	{
+		id: "kualalumpur",
+		name: "Kuala Lumpur",
+		country: "Malaysia",
+		defaultAqi: 75,
+	},
+	{ id: "manila", name: "Manila", country: "Philippines", defaultAqi: 85 },
+	{ id: "hanoi", name: "Hanoi", country: "Vietnam", defaultAqi: 100 },
+	{ id: "hochiminh", name: "Ho Chi Minh", country: "Vietnam", defaultAqi: 95 },
+	{ id: "cairo", name: "Cairo", country: "Egypt", defaultAqi: 120 },
+	{ id: "lagos", name: "Lagos", country: "Nigeria", defaultAqi: 105 },
+	{ id: "nairobi", name: "Nairobi", country: "Kenya", defaultAqi: 65 },
+	{
+		id: "johannesburg",
+		name: "Johannesburg",
+		country: "South Africa",
+		defaultAqi: 55,
+	},
+	{ id: "mexicocity", name: "Mexico City", country: "Mexico", defaultAqi: 90 },
+	{ id: "saopaulo", name: "Sao Paulo", country: "Brazil", defaultAqi: 70 },
+	{
+		id: "buenosaires",
+		name: "Buenos Aires",
+		country: "Argentina",
+		defaultAqi: 55,
+	},
+	{ id: "sydney", name: "Sydney", country: "Australia", defaultAqi: 30 },
+	{ id: "melbourne", name: "Melbourne", country: "Australia", defaultAqi: 25 },
+	{ id: "auckland", name: "Auckland", country: "New Zealand", defaultAqi: 20 },
+	{ id: "moscow", name: "Moscow", country: "Russia", defaultAqi: 75 },
+	{ id: "istanbul", name: "Istanbul", country: "Turkey", defaultAqi: 80 },
+	{ id: "athens", name: "Athens", country: "Greece", defaultAqi: 60 },
+	{ id: "lisbon", name: "Lisbon", country: "Portugal", defaultAqi: 35 },
+	{ id: "vienna", name: "Vienna", country: "Austria", defaultAqi: 30 },
+	{ id: "zurich", name: "Zurich", country: "Switzerland", defaultAqi: 25 },
+	{ id: "brussels", name: "Brussels", country: "Belgium", defaultAqi: 40 },
+	{ id: "copenhagen", name: "Copenhagen", country: "Denmark", defaultAqi: 30 },
+	{ id: "helsinki", name: "Helsinki", country: "Finland", defaultAqi: 20 },
+	{ id: "oslo", name: "Oslo", country: "Norway", defaultAqi: 22 },
+];
 
 interface EnvState {
 	userLocation: [number, number] | null;
@@ -42,6 +143,62 @@ interface EnvState {
 	setMapOverlay: (overlay: "aqi" | "heat" | "noise") => void;
 	routePreference: "fastest" | "cleanest";
 	setRoutePreference: (pref: "fastest" | "cleanest") => void;
+	selectedRegion: RegionProfile;
+	setSelectedRegion: (region: RegionProfile) => void;
+	availableRegions: RegionProfile[];
+	airQualityCalculations: AirQualityCalculations | null;
+	setAirQualityCalculations: (calc: AirQualityCalculations | null) => void;
+	hourlyForecast: HourlyForecast[];
+	setHourlyForecast: (forecast: HourlyForecast[]) => void;
+	lastUpdated: number | null;
+	setLastUpdated: (time: number) => void;
+	mapZoom: number;
+	setMapZoom: (zoom: number) => void;
+	projectionMode: boolean;
+	setProjectionMode: (mode: boolean) => void;
+	showProjectionOnMap: boolean;
+	setShowProjectionOnMap: (show: boolean) => void;
+	clickedHexPosition: { x: number; y: number } | null;
+	setClickedHexPosition: (pos: { x: number; y: number } | null) => void;
+	navigationRoutes: {
+		fastest?: {
+			coordinates: [number, number][];
+			duration: number;
+			distance: number;
+			aqi: number;
+		};
+		cleanest?: {
+			coordinates: [number, number][];
+			duration: number;
+			distance: number;
+			aqi: number;
+		};
+	};
+	setNavigationRoutes: (routes: EnvState["navigationRoutes"]) => void;
+	navigationDestination: {
+		longitude: number;
+		latitude: number;
+		label: string;
+	} | null;
+	setNavigationDestination: (dest: EnvState["navigationDestination"]) => void;
+	showNavigationPanel: boolean;
+	setShowNavigationPanel: (show: boolean) => void;
+	focusMode: boolean;
+	setFocusMode: (mode: boolean) => void;
+	activeInterventions: {
+		id: string;
+		effect: number;
+		maxReduction: number;
+	}[];
+	setActiveInterventions: (
+		interventions: EnvState["activeInterventions"],
+	) => void;
+	projectedAqiDelta: number;
+	setProjectedAqiDelta: (delta: number) => void;
+	showWind: boolean;
+	setShowWind: (show: boolean) => void;
+	selectedRouteId: string | null;
+	setSelectedRouteId: (id: string | null) => void;
 }
 
 export const useEnvStore = create<EnvState>()(
@@ -111,6 +268,41 @@ export const useEnvStore = create<EnvState>()(
 			setMapOverlay: (overlay) => set({ mapOverlay: overlay }),
 			routePreference: "fastest",
 			setRoutePreference: (pref) => set({ routePreference: pref }),
+			selectedRegion: POPULAR_REGIONS[0],
+			setSelectedRegion: (region) => set({ selectedRegion: region }),
+			availableRegions: POPULAR_REGIONS,
+			airQualityCalculations: null,
+			setAirQualityCalculations: (calc) =>
+				set({ airQualityCalculations: calc }),
+			hourlyForecast: [],
+			setHourlyForecast: (forecast) => set({ hourlyForecast: forecast }),
+			lastUpdated: null,
+			setLastUpdated: (time) => set({ lastUpdated: time }),
+			mapZoom: 11,
+			setMapZoom: (zoom) => set({ mapZoom: zoom }),
+			projectionMode: false,
+			setProjectionMode: (mode) => set({ projectionMode: mode }),
+			showProjectionOnMap: false,
+			setShowProjectionOnMap: (show) => set({ showProjectionOnMap: show }),
+			clickedHexPosition: null,
+			setClickedHexPosition: (pos) => set({ clickedHexPosition: pos }),
+			navigationRoutes: {},
+			setNavigationRoutes: (routes) => set({ navigationRoutes: routes }),
+			navigationDestination: null,
+			setNavigationDestination: (dest) => set({ navigationDestination: dest }),
+			showNavigationPanel: false,
+			setShowNavigationPanel: (show) => set({ showNavigationPanel: show }),
+			focusMode: false,
+			setFocusMode: (mode) => set({ focusMode: mode }),
+			activeInterventions: [],
+			setActiveInterventions: (interventions) =>
+				set({ activeInterventions: interventions }),
+			projectedAqiDelta: 0,
+			setProjectedAqiDelta: (delta) => set({ projectedAqiDelta: delta }),
+			showWind: false,
+			setShowWind: (show) => set({ showWind: show }),
+			selectedRouteId: null,
+			setSelectedRouteId: (id) => set({ selectedRouteId: id }),
 		}),
 		{
 			name: "airsentinel-env-store",

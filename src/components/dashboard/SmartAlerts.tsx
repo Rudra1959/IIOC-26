@@ -23,12 +23,12 @@ export function SmartAlerts() {
 						initial={{ opacity: 0, scale: 0.95, x: -20 }}
 						animate={{ opacity: 1, scale: 1, x: 0 }}
 						exit={{ opacity: 0, scale: 0.95, x: -20 }}
-						className="pointer-events-auto absolute top-20 left-20 z-50 w-80 rounded-2xl border border-white/10 bg-[#09090b]/95 p-5 text-white shadow-2xl backdrop-blur-3xl"
+						className="pointer-events-auto absolute top-20 left-20 z-50 w-80 rounded-2xl border border-white/10 bg-[#09090b]/95 p-5 text-white shadow-2xl backdrop-blur-3xl panel-glass"
 					>
 						<div className="mb-5 flex items-center justify-between">
 							<h3 className="flex items-center gap-2 font-bold">
 								<ShieldAlert className="h-4 w-4 text-emerald-400" />
-								Smart Triggers
+								Autonomous Risk Thresholds
 							</h3>
 							<button
 								type="button"
@@ -43,7 +43,7 @@ export function SmartAlerts() {
 							<div className="rounded-xl border border-white/5 bg-white/5 p-4">
 								<div className="mb-3 flex items-center justify-between">
 									<span className="text-sm font-medium text-zinc-300">
-										AQI Danger Alert
+										AQI Danger Threshold
 									</span>
 									<span className="rounded bg-red-500/20 px-2 py-0.5 text-xs font-bold text-red-400">
 										&gt;{threshold}
@@ -60,7 +60,7 @@ export function SmartAlerts() {
 									className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-zinc-800 accent-emerald-500"
 								/>
 								<p className="mt-2 text-center text-[10px] text-zinc-500">
-									Alert me when Air Quality breaches {threshold}
+									Trigger alert when AQI exceeds {threshold} in your zone
 								</p>
 							</div>
 
@@ -68,11 +68,11 @@ export function SmartAlerts() {
 								<Zap className="h-5 w-5 shrink-0 text-emerald-400" />
 								<div>
 									<p className="mb-1 text-sm font-bold text-emerald-400">
-										Hyper-local push enabled
+										Push Notifications Active
 									</p>
 									<p className="text-xs leading-relaxed text-zinc-400">
-										Notifications will route to your device if an anomaly enters
-										your 500m radius.
+										Real-time alerts will be delivered when environmental
+										anomalies enter your 500m monitoring radius.
 									</p>
 								</div>
 							</div>
