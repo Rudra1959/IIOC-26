@@ -1,48 +1,139 @@
 import { UserButton, useUser } from "@clerk/clerk-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useEffect, useMemo } from "react";
+import { ModeSwitcher } from "#/components/dashboard/ModeSwitcher";
+import { TopWidgetBar } from "#/components/dashboard/TopWidgetBar";
 import type { RouteSegment } from "#/components/map/CityMap";
 import { calculateAlternativeRoutes } from "#/lib/route-optimizer";
 import { useEnvStore } from "#/store/envStore";
+import { useFeatureStore } from "#/store/featureStore";
 
-interface ImpactDataPoint {
-	position: [number, number];
-	score: number;
-}
-
-function generateLocalImpactDataProxy(
-	centerLat: number,
-	centerLng: number,
-): ImpactDataPoint[] {
-	const points: ImpactDataPoint[] = [];
-	for (let i = 0; i < 200; i++) {
-		const angle = Math.random() * Math.PI * 2;
-		const radius = Math.random() * 0.06;
-		const lat = centerLat + Math.cos(angle) * radius;
-		const lng = centerLng + Math.sin(angle) * radius * 1.3;
-		const dist = Math.sqrt((lat - centerLat) ** 2 + (lng - centerLng) ** 2);
-		const score = Math.max(
-			5,
-			Math.min(98, Math.round(30 + Math.random() * 60 - dist * 800)),
-		);
-		points.push({ position: [lng, lat], score });
-	}
-	return points;
-}
+const GlobalRankModal = lazy(() =>
+	import("#/components/dashboard/modals/GlobalRankModal").then((m) => ({
+		default: m.GlobalRankModal,
+	})),
+);
+const AirPassportModal = lazy(() =>
+	import("#/components/dashboard/modals/AirPassportModal").then((m) => ({
+		default: m.AirPassportModal,
+	})),
+);
+const CityAirDuelModal = lazy(() =>
+	import("#/components/dashboard/modals/CityAirDuelModal").then((m) => ({
+		default: m.CityAirDuelModal,
+	})),
+);
+const LungSimulatorModal = lazy(() =>
+	import("#/components/dashboard/modals/LungSimulatorModal").then((m) => ({
+		default: m.LungSimulatorModal,
+	})),
+);
+const BodyXRayModal = lazy(() =>
+	import("#/components/dashboard/modals/BodyXRayModal").then((m) => ({
+		default: m.BodyXRayModal,
+	})),
+);
+const HospitalNetworkModal = lazy(() =>
+	import("#/components/dashboard/modals/HospitalNetworkModal").then((m) => ({
+		default: m.HospitalNetworkModal,
+	})),
+);
+const TimeMachineModal = lazy(() =>
+	import("#/components/dashboard/modals/TimeMachineModal").then((m) => ({
+		default: m.TimeMachineModal,
+	})),
+);
+const RadarModal = lazy(() =>
+	import("#/components/dashboard/modals/RadarModal").then((m) => ({
+		default: m.RadarModal,
+	})),
+);
+const GhostCitiesModal = lazy(() =>
+	import("#/components/dashboard/modals/GhostCitiesModal").then((m) => ({
+		default: m.GhostCitiesModal,
+	})),
+);
+const PollutionDNAModal = lazy(() =>
+	import("#/components/dashboard/modals/PollutionDNAModal").then((m) => ({
+		default: m.PollutionDNAModal,
+	})),
+);
+const AqiMarketModal = lazy(() =>
+	import("#/components/dashboard/modals/AqiMarketModal").then((m) => ({
+		default: m.AqiMarketModal,
+	})),
+);
+const CarbonTrackerModal = lazy(() =>
+	import("#/components/dashboard/modals/CarbonTrackerModal").then((m) => ({
+		default: m.CarbonTrackerModal,
+	})),
+);
+const CitizenReportModal = lazy(() =>
+	import("#/components/dashboard/modals/CitizenReportModal").then((m) => ({
+		default: m.CitizenReportModal,
+	})),
+);
+const CommunityLeaderboardModal = lazy(() =>
+	import("#/components/dashboard/modals/CommunityLeaderboardModal").then(
+		(m) => ({
+			default: m.CommunityLeaderboardModal,
+		}),
+	),
+);
+const PollutionNewsModal = lazy(() =>
+	import("#/components/dashboard/modals/PollutionNewsModal").then((m) => ({
+		default: m.PollutionNewsModal,
+	})),
+);
+const AqiMusicModal = lazy(() =>
+	import("#/components/dashboard/modals/AqiMusicModal").then((m) => ({
+		default: m.AqiMusicModal,
+	})),
+);
+const AIOracleModal = lazy(() =>
+	import("#/components/dashboard/modals/AIOracleModal").then((m) => ({
+		default: m.AIOracleModal,
+	})),
+);
+const ChemLabModal = lazy(() =>
+	import("#/components/dashboard/modals/ChemLabModal").then((m) => ({
+		default: m.ChemLabModal,
+	})),
+);
+const SatelliteDecodeModal = lazy(() =>
+	import("#/components/dashboard/modals/SatelliteDecodeModal").then((m) => ({
+		default: m.SatelliteDecodeModal,
+	})),
+);
+const AIAssistantModal = lazy(() =>
+	import("#/components/dashboard/modals/AIAssistantModal").then((m) => ({
+		default: m.AIAssistantModal,
+	})),
+);
+const CityBuilderModal = lazy(() =>
+	import("#/components/dashboard/modals/CityBuilderModal").then((m) => ({
+		default: m.CityBuilderModal,
+	})),
+);
+const AQIQuestModal = lazy(() =>
+	import("#/components/dashboard/modals/AQIQuestModal").then((m) => ({
+		default: m.AQIQuestModal,
+	})),
+);
 
 const CityMap = lazy(() =>
 	import("#/components/map/CityMap").then((module) => ({
 		default: module.CityMap,
 	})),
 );
-const GovView = lazy(() =>
-	import("#/components/dashboard/GovView").then((module) => ({
-		default: module.GovView,
-	})),
-);
 const CitizenView = lazy(() =>
 	import("#/components/dashboard/CitizenView").then((module) => ({
 		default: module.CitizenView,
+	})),
+);
+const GovView = lazy(() =>
+	import("#/components/dashboard/GovView").then((module) => ({
+		default: module.GovView,
 	})),
 );
 const SmartAlerts = lazy(() =>
@@ -71,6 +162,8 @@ const CompareView = lazy(() =>
 	})),
 );
 
+
+
 export const Route = createFileRoute("/dashboard")({
 	component: DashboardPage,
 });
@@ -94,9 +187,46 @@ function MapSkeleton() {
 	);
 }
 
+function NightModeOverlay() {
+	const nightMode = useFeatureStore((s) => s.nightMode);
+	if (!nightMode) return null;
+	return (
+		<div
+			className="pointer-events-none fixed inset-0 z-[5]"
+			style={{
+				background:
+					"radial-gradient(ellipse_at_center,rgba(15,15,40,0.7) 0%,rgba(5,5,20,0.85) 100%)",
+			}}
+		>
+			<svg
+				className="absolute inset-0 h-full w-full opacity-80"
+				xmlns="http://www.w3.org/2000/svg"
+			>
+				{[...Array(80)].map((_, i) => {
+					const x = (i * 137.508) % 100;
+					const y = (i * 73.395) % 100;
+					const r = 0.3 + (i % 5) * 0.2;
+					const opacity = 0.3 + (i % 7) * 0.1;
+					return (
+						<circle
+							key={i}
+							cx={`${x}%`}
+							cy={`${y}%`}
+							r={r}
+							fill="white"
+							opacity={opacity}
+						/>
+					);
+				})}
+			</svg>
+		</div>
+	);
+}
+
 function DashboardPage() {
 	const { user, isSignedIn, isLoaded } = useUser();
 	const navigate = useNavigate();
+	const mode = useFeatureStore((s) => s.mode);
 	const {
 		userLocation,
 		setUserLocation,
@@ -230,6 +360,8 @@ function DashboardPage() {
 		<div className="relative h-screen w-full overflow-hidden bg-[#09090b] text-white">
 			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_30%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_26%)]" />
 
+			<NightModeOverlay />
+
 			<div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between px-4 py-4 sm:px-6">
 				<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-black/55 px-4 py-3 backdrop-blur-md">
 					<div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -260,11 +392,17 @@ function DashboardPage() {
 						{focusMode ? "FOCUS ON" : "FOCUS"}
 					</button>
 				</div>
-				<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-black/40 px-3 py-2 backdrop-blur-md">
-					<span className="hidden text-xs text-zinc-400 sm:block">
-						Welcome, {user?.firstName ?? "Agent"}
-					</span>
-					<UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+
+				<TopWidgetBar />
+
+				<div className="flex items-center gap-3">
+					<ModeSwitcher />
+					<div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-black/40 px-3 py-2 backdrop-blur-md">
+						<span className="hidden text-xs text-zinc-400 sm:block">
+							Welcome, {user?.firstName ?? "Agent"}
+						</span>
+						<UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+					</div>
 				</div>
 			</div>
 
@@ -281,7 +419,8 @@ function DashboardPage() {
 						<>
 							<SmartAlerts />
 							<PolicySimulator />
-							<GovView />
+							{mode === "citizen" && <CitizenView />}
+							{mode === "government" && <GovView />}
 							<HexagonDetailPanel />
 							<BreatheSafeNavigation
 								routes={[]}
@@ -289,7 +428,6 @@ function DashboardPage() {
 								selectedRouteId={selectedRouteId ?? undefined}
 								onClearRoute={handleClearRoute}
 							/>
-							<CitizenView />
 						</>
 					)}
 					{focusMode && (
@@ -305,6 +443,56 @@ function DashboardPage() {
 					)}
 				</div>
 			</Suspense>
+
+			<Suspense fallback={null}>
+				<GlobalRankModal />
+				<AirPassportModal />
+				<CityAirDuelModal />
+				<LungSimulatorModal />
+				<BodyXRayModal />
+				<HospitalNetworkModal />
+				<TimeMachineModal />
+				<RadarModal />
+				<GhostCitiesModal />
+				<PollutionDNAModal />
+				<AqiMarketModal />
+				<CarbonTrackerModal />
+				<CitizenReportModal />
+				<CommunityLeaderboardModal />
+				<PollutionNewsModal />
+				<AqiMusicModal />
+				<AIOracleModal />
+				<ChemLabModal />
+				<SatelliteDecodeModal />
+				<AIAssistantModal />
+				<CityBuilderModal />
+				<AQIQuestModal />
+			</Suspense>
 		</div>
 	);
+}
+
+interface ImpactDataPoint {
+	position: [number, number];
+	score: number;
+}
+
+function generateLocalImpactDataProxy(
+	centerLat: number,
+	centerLng: number,
+): ImpactDataPoint[] {
+	const points: ImpactDataPoint[] = [];
+	for (let i = 0; i < 200; i++) {
+		const angle = Math.random() * Math.PI * 2;
+		const radius = Math.random() * 0.06;
+		const lat = centerLat + Math.cos(angle) * radius;
+		const lng = centerLng + Math.sin(angle) * radius * 1.3;
+		const dist = Math.sqrt((lat - centerLat) ** 2 + (lng - centerLng) ** 2);
+		const score = Math.max(
+			5,
+			Math.min(98, Math.round(30 + Math.random() * 60 - dist * 800)),
+		);
+		points.push({ position: [lng, lat], score });
+	}
+	return points;
 }

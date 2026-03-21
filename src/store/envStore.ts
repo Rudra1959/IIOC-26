@@ -199,6 +199,28 @@ interface EnvState {
 	setShowWind: (show: boolean) => void;
 	selectedRouteId: string | null;
 	setSelectedRouteId: (id: string | null) => void;
+	currentWindSpeed: number | null;
+	currentWindDirection: number | null;
+	currentWindGusts: number | null;
+	setWindData: (
+		speed: number | null,
+		direction: number | null,
+		gusts: number | null,
+	) => void;
+	windGridPoints: {
+		latitude: number;
+		longitude: number;
+		speed: number;
+		direction: number;
+	}[];
+	setWindGridPoints: (
+		points: {
+			latitude: number;
+			longitude: number;
+			speed: number;
+			direction: number;
+		}[],
+	) => void;
 }
 
 export const useEnvStore = create<EnvState>()(
@@ -303,6 +325,17 @@ export const useEnvStore = create<EnvState>()(
 			setShowWind: (show) => set({ showWind: show }),
 			selectedRouteId: null,
 			setSelectedRouteId: (id) => set({ selectedRouteId: id }),
+			currentWindSpeed: null,
+			currentWindDirection: null,
+			currentWindGusts: null,
+			setWindData: (speed, direction, gusts) =>
+				set({
+					currentWindSpeed: speed,
+					currentWindDirection: direction,
+					currentWindGusts: gusts,
+				}),
+			windGridPoints: [],
+			setWindGridPoints: (points) => set({ windGridPoints: points }),
 		}),
 		{
 			name: "airsentinel-env-store",

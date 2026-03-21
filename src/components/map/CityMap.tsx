@@ -511,6 +511,7 @@ export function CityMap({
 	const showWind = useEnvStore((s) => s.showWind);
 	const setShowWind = useEnvStore((s) => s.setShowWind);
 	const selectedRouteId = useEnvStore((s) => s.selectedRouteId);
+	const setWindGridPoints = useEnvStore((s) => s.setWindGridPoints);
 
 	useEffect(() => {
 		if (userLocation) {
@@ -543,12 +544,13 @@ export function CityMap({
 						speed: point.speed,
 					}));
 					setWindVectors(vectors);
+					setWindGridPoints(windData.points);
 				})
 				.catch(() => {
 					setWindVectors(generateWindVectors(userLocation[1], userLocation[0]));
 				});
 		}
-	}, [userLocation, showWind]);
+	}, [userLocation, showWind, setWindGridPoints]);
 
 	useEffect(() => {
 		if (!showWind || windVectors.length === 0) {
@@ -845,6 +847,8 @@ export function CityMap({
 			path: getWindStreamlinePath(v.position, v.direction, v.speed),
 			color: getWindStreamlineColor(v.speed),
 			width: 1 + v.speed * 0.3,
+			direction: v.direction,
+			speed: v.speed,
 		}));
 	}, [windVectors]);
 
@@ -1092,19 +1096,75 @@ export function CityMap({
 			? data
 			: data.filter((d) => d.score > 60 || d.score < 30);
 
-		if (showWind) {
+		if (showWind && windStreamlines.length > 0) {
+			const arrowPaths = windStreamlines.map((s) => {
+				const rad = (s.direction * Math.PI) / 180;
+				const phaseOffset = windPhaseRef.current;
+				const flowOffset = s.speed * 0.0001;
+				const origin: [number, number] = [
+					s.position[0] + Math.cos(rad + phaseOffset) * flowOffset,
+					s.position[1] + Math.sin(rad + phaseOffset) * flowOffset,
+				];
+				const tailOffset = s.speed * 0.0003;
+				const tail: [number, number] = [
+					origin[0] - Math.cos(rad) * tailOffset,
+					origin[1] - Math.sin(rad) * tailOffset,
+				];
+				const arrowLen = Math.min(s.speed * 0.00025, 0.0012);
+				const headSize = arrowLen * 0.4;
+				const perpRad = rad + Math.PI / 2;
+				const arrowBase: [number, number] = [
+					origin[0] + Math.cos(rad) * arrowLen,
+					origin[1] + Math.sin(rad) * arrowLen,
+				];
+				const arrowLeft: [number, number] = [
+					arrowBase[0] + Math.cos(perpRad) * headSize,
+					arrowBase[1] + Math.sin(perpRad) * headSize,
+				];
+				const arrowRight: [number, number] = [
+					arrowBase[0] - Math.cos(perpRad) * headSize,
+					arrowBase[1] - Math.sin(perpRad) * headSize,
+				];
+				return {
+					path: [tail, origin, arrowBase, arrowLeft, arrowBase, arrowRight],
+					color: s.color,
+					width: Math.max(0.5, s.speed * 0.08),
+				};
+			});
+
 			allLayers.push(
-				new ScatterplotLayer({
+				new PathLayer({
 					id: "wind-arrow-layer",
-					data: windStreamlines,
+					data: arrowPaths,
 					pickable: false,
 					opacity: 0.85,
+					widthScale: 1,
+					widthMinPixels: 1,
+					widthMaxPixels: 3,
+					getPath: (d) => d.path,
+					getColor: (d) => d.color,
+					getWidth: (d) => d.width,
+					capRounded: true,
+					jointRounded: true,
+				}),
+			);
+
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "wind-dot-layer",
+					data: windStreamlines.map((s) => ({
+						position: s.position,
+						color: s.color,
+						radius: Math.max(1, s.speed * 0.15),
+					})),
+					pickable: false,
+					opacity: 0.5,
 					filled: true,
-					radiusMinPixels: 2,
-					radiusMaxPixels: 5,
+					radiusMinPixels: 1,
+					radiusMaxPixels: 3,
 					getPosition: (d) => d.position,
 					getFillColor: (d) => d.color,
-					getRadius: (d) => 2 + d.width,
+					getRadius: (d) => d.radius,
 				}),
 			);
 		}

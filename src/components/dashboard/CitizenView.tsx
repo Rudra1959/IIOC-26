@@ -5,12 +5,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
 	Activity,
 	BarChart3,
-	Car,
 	CheckCircle2,
 	ChevronDown,
 	ChevronRight,
 	ChevronUp,
-	Droplets,
 	Filter,
 	Globe,
 	Heart,
@@ -26,6 +24,8 @@ import {
 	TrendingUp,
 	TriangleAlert,
 	Wind,
+	Droplets,
+	Car,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../../../convex/_generated/api";
@@ -46,6 +46,7 @@ import {
 } from "../../lib/environment";
 import { useEnvStore } from "../../store/envStore";
 import { Input } from "../ui/input";
+
 
 const aqiBandStyles: Record<
 	AqiBand,
@@ -260,6 +261,8 @@ export function CitizenView() {
 	const hourlyForecast = useEnvStore((s) => s.hourlyForecast);
 	const setNavigationRoutes = useEnvStore((s) => s.setNavigationRoutes);
 	const setSelectedRouteId = useEnvStore((s) => s.setSelectedRouteId);
+	const showWind = useEnvStore((s) => s.showWind);
+	const setShowWind = useEnvStore((s) => s.setShowWind);
 
 	const [placeQuery, setPlaceQuery] = useState("");
 	const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
@@ -637,97 +640,97 @@ export function CitizenView() {
 						</div>
 					</div>
 
-					<div className="relative z-10 grid grid-cols-2 gap-2 sm:grid-cols-3">
-						<div className="rounded-xl border border-white/10 bg-white/5 p-3 transition-all hover:bg-white/10">
-							<div className="flex items-center gap-2">
-								<div
-									className={`flex h-8 w-8 items-center justify-center rounded-lg ${bandStyles.bg}`}
-								>
-									<Wind className="h-4 w-4 text-white" />
-								</div>
-								<div>
-									<p className="text-[10px] uppercase tracking-wider text-zinc-500">
-										AQI
-									</p>
-									<p className={`text-lg font-bold ${bandStyles.text}`}>
-										{Math.round(aqiValue)}
-									</p>
-								</div>
+					<div className="relative z-10 grid grid-cols-2 gap-3 sm:grid-cols-3">
+						<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#18181b]/50 p-3">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+								<Wind className="h-5 w-5 text-white" />
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+									AQI
+								</span>
+								<span className={`text-xl font-black leading-none mt-1 ${bandStyles.text}`}>
+									{Math.round(aqiValue)}
+								</span>
 							</div>
 						</div>
-						<div className="rounded-xl border border-white/10 bg-white/5 p-3 transition-all hover:bg-white/10">
-							<div className="flex items-center gap-2">
-								<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15">
-									<Activity className="h-4 w-4 text-amber-400" />
-								</div>
-								<div>
-									<p className="text-[10px] uppercase tracking-wider text-zinc-500">
-										PM2.5
-									</p>
-									<p className="text-lg font-bold text-amber-400">
-										{formatReading(localEnvironment?.pm25 ?? 22, 1)}
-									</p>
-								</div>
+
+						<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#18181b]/50 p-3">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10">
+								<Activity className="h-5 w-5 text-orange-400" />
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+									PM2.5
+								</span>
+								<span className="text-xl font-black text-orange-400 leading-none mt-1">
+									{formatReading(localEnvironment?.pm25 ?? 54.7, 1)}
+								</span>
 							</div>
 						</div>
-						<div className="rounded-xl border border-white/10 bg-white/5 p-3 transition-all hover:bg-white/10">
-							<div className="flex items-center gap-2">
-								<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/15">
-									<Thermometer className="h-4 w-4 text-orange-400" />
-								</div>
-								<div>
-									<p className="text-[10px] uppercase tracking-wider text-zinc-500">
-										Temp
-									</p>
-									<p className="text-lg font-bold text-orange-400">
-										{formatReading(localEnvironment?.temperature ?? 25, 1)}C
-									</p>
-								</div>
+
+						<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#18181b]/50 p-3">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
+								<Thermometer className="h-5 w-5 text-amber-500" />
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+									TEMP
+								</span>
+								<span className="text-xl font-black text-amber-500 leading-none mt-1">
+									{formatReading(localEnvironment?.temperature ?? 18.8, 1)}C
+								</span>
 							</div>
 						</div>
-						<div className="rounded-xl border border-white/10 bg-white/5 p-3 transition-all hover:bg-white/10">
-							<div className="flex items-center gap-2">
-								<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15">
-									<Droplets className="h-4 w-4 text-blue-400" />
-								</div>
-								<div>
-									<p className="text-[10px] uppercase tracking-wider text-zinc-500">
-										Humidity
-									</p>
-									<p className="text-lg font-bold text-blue-400">
-										{formatReading(localEnvironment?.humidity ?? 50)}%
-									</p>
-								</div>
+
+						<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#18181b]/50 p-3">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
+								<Droplets className="h-5 w-5 text-blue-400" />
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+									HUMIDITY
+								</span>
+								<span className="text-xl font-black text-blue-400 leading-none mt-1">
+									{formatReading(localEnvironment?.humidity ?? 87)}%
+								</span>
 							</div>
 						</div>
-						<div className="rounded-xl border border-white/10 bg-white/5 p-3 transition-all hover:bg-white/10">
-							<div className="flex items-center gap-2">
-								<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/15">
-									<Car className="h-4 w-4 text-cyan-400" />
-								</div>
-								<div>
-									<p className="text-[10px] uppercase tracking-wider text-zinc-500">
-										Wind
-									</p>
-									<p className="text-lg font-bold text-cyan-400">
-										{formatReading(localEnvironment?.windSpeed ?? 5)} km/h
-									</p>
-								</div>
+
+						<button
+							type="button"
+							onClick={() => setShowWind(!showWind)}
+							className={`flex items-center gap-3 rounded-2xl border cursor-pointer text-left transition-colors p-3 ${
+								showWind 
+									? "border-cyan-500/40 bg-cyan-500/10" 
+									: "border-white/5 bg-[#18181b]/50 hover:bg-white/[0.04]"
+							}`}
+							title={showWind ? "Hide wind layer" : "Show wind layer"}
+						>
+							<div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${showWind ? "bg-cyan-500/20" : "bg-cyan-500/10"}`}>
+								<Car className={`h-5 w-5 ${showWind ? "text-cyan-400" : "text-cyan-500"}`} />
 							</div>
-						</div>
-						<div className="rounded-xl border border-white/10 bg-white/5 p-3 transition-all hover:bg-white/10">
-							<div className="flex items-center gap-2">
-								<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-500/15">
-									<Sun className="h-4 w-4 text-yellow-400" />
-								</div>
-								<div>
-									<p className="text-[10px] uppercase tracking-wider text-zinc-500">
-										UV Index
-									</p>
-									<p className="text-lg font-bold text-yellow-400">
-										{formatReading(localEnvironment?.uvIndex ?? 5, 1)}
-									</p>
-								</div>
+							<div className="flex flex-col">
+								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+									WIND
+								</span>
+								<span className={`text-xl font-black leading-none mt-1 ${showWind ? "text-cyan-400" : "text-cyan-500"}`}>
+									{formatReading(localEnvironment?.windSpeed ?? 3)} km/h
+								</span>
+							</div>
+						</button>
+
+						<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#18181b]/50 p-3">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yellow-500/10">
+								<Sun className="h-5 w-5 text-yellow-500" />
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+									UV INDEX
+								</span>
+								<span className="text-xl font-black text-yellow-500 leading-none mt-1">
+									{formatReading(localEnvironment?.uvIndex ?? 0.0, 1)}
+								</span>
 							</div>
 						</div>
 					</div>

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, RotateCcw, Zap } from "lucide-react";
+import { ChevronDown, ChevronUp, RotateCcw, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { getAqiMeta } from "#/lib/air-quality";
 import { useEnvStore } from "#/store/envStore";
@@ -302,11 +302,21 @@ function calculateProjectedAqi(
 	return Math.round(Math.max(0, baseAqi * (1 - totalReduction / 100)));
 }
 
-function calculateHealthSavings(projectedReduction: number): string {
-	const savingsPerDay = projectedReduction * 120;
-	if (savingsPerDay >= 1000)
-		return `$${(savingsPerDay / 1000).toFixed(1)}k/day`;
-	return `$${Math.round(savingsPerDay)}/day`;
+const INR_RATE = 83;
+
+function calculateHealthSavingsINR(projectedReduction: number): {
+	daily: number;
+	annual: number;
+} {
+	const dailyINR = projectedReduction * 120 * INR_RATE;
+	return { daily: dailyINR, annual: dailyINR * 365 };
+}
+
+function formatINR(amount: number): string {
+	if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)}Cr`;
+	if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+	if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
+	return `₹${Math.round(amount)}`;
 }
 
 function calculatePopulationProtected(
@@ -377,7 +387,7 @@ export function PolicySimulator() {
 	const reductionPercent = Math.round((aqiReduction / baseAqi) * 100);
 	const projectedMeta = getAqiMeta(projectedAqi);
 	const baseMeta = getAqiMeta(baseAqi);
-	const healthSavings = calculateHealthSavings(aqiReduction);
+	const healthSavings = calculateHealthSavingsINR(aqiReduction);
 	const populationProtected = calculatePopulationProtected(
 		interventions,
 		45000,
@@ -470,33 +480,41 @@ export function PolicySimulator() {
 		<>
 			{isCollapsed && (
 				<motion.button
-					initial={{ opacity: 0, scale: 0.9 }}
-					animate={{ opacity: 1, scale: 1 }}
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.3 }}
 					type="button"
 					onClick={() => setIsCollapsed(false)}
-					className="pointer-events-auto absolute left-0 top-28 z-30 flex cursor-pointer items-center gap-2 rounded-r-xl border border-amber-500/30 border-l-0 bg-black/90 px-2 py-3 shadow-xl backdrop-blur-xl transition-all hover:bg-black group"
+					className="pointer-events-auto absolute bottom-4 left-4 z-30 flex w-72 items-center justify-between rounded-2xl border border-amber-500/20 bg-black/95 px-4 py-3 shadow-2xl backdrop-blur-2xl transition-colors hover:bg-white/[0.03] group"
 				>
-					<div className="flex flex-col items-center gap-1">
-						<Zap className="h-4 w-4 text-amber-400" />
-						<span
-							className="writing-vertical-rl text-[9px] font-bold uppercase tracking-widest text-amber-400"
-							style={{ writingMode: "vertical-rl" }}
-						>
-							Simulator
-						</span>
+					<div className="flex items-center gap-3">
+						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20">
+							<Zap className="h-4 w-4 text-amber-400" />
+						</div>
+						<div className="text-left">
+							<span className="font-mono text-[10px] font-bold uppercase tracking-widest text-amber-400">
+								Response Simulator
+							</span>
+							<span className="block mt-0.5 font-mono text-[9px] text-zinc-500">
+								Click to expand panel
+							</span>
+						</div>
 					</div>
-					<ChevronRight className="h-3 w-3 text-amber-400/50 transition-transform group-hover:translate-x-0.5" />
+					<div className="flex items-center gap-2">
+						<div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/10 transition-colors group-hover:bg-amber-500/20">
+							<ChevronUp className="h-3.5 w-3.5 text-amber-400" />
+						</div>
+					</div>
 				</motion.button>
 			)}
 
 			{!isCollapsed && (
 				<motion.div
-					initial={{ opacity: 0, x: -24, scale: 0.97 }}
-					animate={{ opacity: 1, x: 0, scale: 1 }}
-					exit={{ opacity: 0, x: -24, scale: 0.97 }}
+					initial={{ opacity: 0, y: 20, scale: 0.97 }}
+					animate={{ opacity: 1, y: 0, scale: 1 }}
+					exit={{ opacity: 0, y: 20, scale: 0.97 }}
 					transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-					className="pointer-events-auto absolute left-4 top-20 z-30 w-80 rounded-2xl border border-amber-500/20 bg-black/90 text-white shadow-2xl backdrop-blur-2xl sm:w-[22rem]"
+					className="pointer-events-auto absolute bottom-4 left-4 z-30 w-80 rounded-2xl border border-amber-500/20 bg-black/95 text-white shadow-2xl backdrop-blur-2xl sm:w-[22rem]"
 				>
 					<div className="flex h-full max-h-[calc(100vh-10rem)] flex-col">
 						<div className="flex flex-col gap-3 overflow-y-auto p-4">
@@ -531,7 +549,7 @@ export function PolicySimulator() {
 										className="cursor-pointer rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-white/10 hover:text-white"
 										title="Minimize"
 									>
-										<ChevronLeft className="h-3.5 w-3.5" />
+										<ChevronDown className="h-3.5 w-3.5" />
 									</button>
 								</div>
 							</div>
@@ -771,15 +789,22 @@ export function PolicySimulator() {
 									<p className="font-mono text-[8px] uppercase tracking-widest text-emerald-400/60">
 										Health Savings
 									</p>
-									<p className="font-mono text-sm font-black text-emerald-400">
-										{isActive ? healthSavings : "$0/day"}
+									<p className="font-mono text-[13px] font-black text-emerald-400">
+										{isActive
+											? `${formatINR(healthSavings.daily)}/day`
+											: "₹0/day"}
+									</p>
+									<p className="font-mono text-[7px] text-emerald-200/40">
+										{isActive
+											? `${formatINR(healthSavings.annual)}/yr`
+											: "₹0/yr"}
 									</p>
 								</div>
 								<div className="rounded-lg border border-sky-500/20 bg-sky-500/5 p-2.5 text-center">
 									<p className="font-mono text-[8px] uppercase tracking-widest text-sky-400/60">
 										Pop. Protected
 									</p>
-									<p className="font-mono text-sm font-black text-sky-400">
+									<p className="font-mono text-[13px] font-black text-sky-400">
 										{populationProtected.toLocaleString()}
 									</p>
 								</div>

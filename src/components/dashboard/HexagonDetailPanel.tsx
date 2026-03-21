@@ -1,3 +1,4 @@
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
 	AlertTriangle,
@@ -7,11 +8,12 @@ import {
 	Gauge,
 	Layers,
 	Navigation,
+	RefreshCw,
 	Thermometer,
 	Wind,
 	X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
 	PolarAngleAxis,
 	PolarGrid,
@@ -20,20 +22,13 @@ import {
 	RadarChart,
 	ResponsiveContainer,
 } from "recharts";
+import { fetchEnvironmentalSnapshot } from "#/lib/environment";
 import { useEnvStore } from "#/store/envStore";
 
 interface HexagonData {
 	score: number;
 	position: [number, number];
 	trend: "rising" | "stable" | "falling";
-}
-
-function getDominantThreatLabel(data: HexagonData): string {
-	const hash = (data.position[0] * 1000 + data.position[1] * 100) % 4;
-	if (hash === 0) return "Dominant Threat: Vehicular Exhaust";
-	if (hash === 1) return "Dominant Threat: Road/Site Dust";
-	if (hash === 2) return "Dominant Threat: Ground-Level Ozone";
-	return "Dominant Threat: Industrial Sulfates";
 }
 
 function getDominantColor(label: string): string {
@@ -126,23 +121,92 @@ export function HexagonDetailPanel() {
 	const setClickedHexPosition = useEnvStore((s) => s.setClickedHexPosition);
 	const setGreenDestination = useEnvStore((s) => s.setGreenDestination);
 	const setMapFocus = useEnvStore((s) => s.setMapFocus);
+	const userLocation = useEnvStore((s) => s.userLocation);
+	const currentAqi = useEnvStore((s) => s.currentAqi);
+	const currentWindDirection = useEnvStore((s) => s.currentWindDirection);
 
-	const [hexData] = useState<HexagonData>(() => ({
-		score: 65 + Math.round(Math.random() * 30),
-		position: [Math.random() * 0.1 - 0.05, Math.random() * 0.1 - 0.05],
-		trend: "rising" as const,
-	}));
+	const envQuery = useTanstackQuery({
+		queryKey: ["hexDetailEnv", userLocation?.[0], userLocation?.[1]],
+		enabled: Boolean(userLocation),
+		staleTime: 60 * 1000,
+		gcTime: 5 * 60 * 1000,
+		queryFn: () => {
+			if (!userLocation) throw new Error("No location");
+			return fetchEnvironmentalSnapshot({
+				latitude: userLocation[1],
+				longitude: userLocation[0],
+				label: "Zone",
+			});
+		},
+	});
 
-	const threatLabel = getDominantThreatLabel(hexData);
+	const data = envQuery.data;
+	const score = currentAqi ?? data?.aqi ?? 50;
+	const trend = score > 80 ? "rising" : score > 50 ? "stable" : "falling";
+	const hexData: HexagonData = {
+		score,
+		position: clickedHexPosition
+			? [clickedHexPosition.x, clickedHexPosition.y]
+			: [0, 0],
+		trend,
+	};
+
+	const threatLabel = (() => {
+		if (!data) return "Dominant Threat: Loading...";
+		const pm = data.pm25 ?? 0;
+		const no2 = data.nitrogenDioxide ?? 0;
+		const o3 = data.ozone ?? 0;
+		const so2 = data.sulphurDioxide ?? 0;
+		if (pm > 35) return "Dominant Threat: Particulate Matter";
+		if (no2 > 40) return "Dominant Threat: Nitrogen Dioxide";
+		if (o3 > 100) return "Dominant Threat: Ground-Level Ozone";
+		if (so2 > 20) return "Dominant Threat: Sulphur Dioxide";
+		return "Dominant Threat: Vehicular Exhaust";
+	})();
 	const threatColor = getDominantColor(threatLabel);
-	const radarData = getThreatData(hexData.score);
-	const windDir = 180 + Math.round(Math.random() * 120);
+
+	const radarData = data
+		? [
+				{
+					subject: "PM2.5",
+					value: Math.round((data.pm25 ?? 0) * (100 / 75)),
+					fullMark: 100,
+				},
+				{
+					subject: "PM10",
+					value: Math.round((data.pm10 ?? 0) * (100 / 150)),
+					fullMark: 100,
+				},
+				{
+					subject: "NO\u2082",
+					value: Math.round((data.nitrogenDioxide ?? 0) * (100 / 100)),
+					fullMark: 100,
+				},
+				{
+					subject: "O\u2083",
+					value: Math.round((data.ozone ?? 0) * (100 / 120)),
+					fullMark: 100,
+				},
+				{
+					subject: "SO\u2082",
+					value: Math.round((data.sulphurDioxide ?? 0) * (100 / 40)),
+					fullMark: 100,
+				},
+				{
+					subject: "CO",
+					value: Math.round((data.carbonMonoxide ?? 0) * (100 / 4)),
+					fullMark: 100,
+				},
+			]
+		: getThreatData(score);
+
+	const windDir = currentWindDirection ?? data?.windDirection ?? 0;
 
 	useEffect(() => {
 		if (clickedHexPosition) {
 			const timer = setTimeout(() => {
 				setClickedHexPosition(null);
-			}, 8000);
+			}, 10000);
 			return () => clearTimeout(timer);
 		}
 	}, [clickedHexPosition, setClickedHexPosition]);
@@ -165,13 +229,32 @@ export function HexagonDetailPanel() {
 						</div>
 						<h4 className="text-sm font-bold text-white">Zone Intelligence</h4>
 					</div>
-					<button
-						type="button"
-						onClick={() => setClickedHexPosition(null)}
-						className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
-					>
-						<X className="h-4 w-4" />
-					</button>
+					<div className="flex items-center gap-2">
+						<div
+							className="h-1.5 w-1.5 rounded-full"
+							style={{
+								backgroundColor: envQuery.isFetching ? "#eab308" : "#22c55e",
+								boxShadow: `0 0 6px ${envQuery.isFetching ? "#eab308" : "#22c55e"}`,
+							}}
+						/>
+						<button
+							type="button"
+							onClick={() => void envQuery.refetch()}
+							className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+							title="Refresh"
+						>
+							<RefreshCw
+								className={`h-3.5 w-3.5 ${envQuery.isFetching ? "animate-spin" : ""}`}
+							/>
+						</button>
+						<button
+							type="button"
+							onClick={() => setClickedHexPosition(null)}
+							className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+						>
+							<X className="h-4 w-4" />
+						</button>
+					</div>
 				</div>
 
 				<div
@@ -250,22 +333,22 @@ export function HexagonDetailPanel() {
 						{
 							icon: <Wind className="h-3 w-3 text-sky-400" />,
 							label: "Wind",
-							value: `${12 + Math.round(Math.random() * 8)} km/h`,
+							value: `${data ? Math.round(data.windSpeed ?? 0) : "--"} km/h`,
 						},
 						{
 							icon: <Thermometer className="h-3 w-3 text-orange-400" />,
 							label: "Temp",
-							value: `${22 + Math.round(Math.random() * 8)}\u00B0C`,
+							value: `${data ? (data.temperature?.toFixed(1) ?? "--") : "--"}\u00B0C`,
 						},
 						{
 							icon: <Droplets className="h-3 w-3 text-blue-400" />,
 							label: "Humidity",
-							value: `${50 + Math.round(Math.random() * 30)}%`,
+							value: `${data ? (data.humidity ?? "--") : "--"}%`,
 						},
 						{
 							icon: <Layers className="h-3 w-3 text-emerald-400" />,
-							label: "Coverage",
-							value: `${70 + Math.round(Math.random() * 25)}%`,
+							label: "Pressure",
+							value: `${data ? (data.pressure?.toFixed(0) ?? "--") : "--"} hPa`,
 						},
 					].map((stat) => (
 						<div

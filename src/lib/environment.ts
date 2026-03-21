@@ -665,6 +665,36 @@ function calculateHealthScore(aqi: number, pm25: number): number {
 	return Math.round(aqiScore * 0.6 + pm25Score * 0.4);
 }
 
+export async function fetchPlaceAqi(
+	latitude: number,
+	longitude: number,
+): Promise<{ aqi: number | null; usAqi: number | null; band: AqiBand }> {
+	try {
+		const url = buildUrl(AIR_QUALITY_ENDPOINT, {
+			latitude: String(latitude),
+			longitude: String(longitude),
+			current: "us_aqi,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone",
+			timezone: "auto",
+		});
+		const data = await fetchJson<OpenMeteoCurrentResponse>(url);
+		const airCurrent = data.current ?? {};
+		const usAqi = toNumber(airCurrent.us_aqi);
+		const resolvedAqi = usAqi ?? toNumber(airCurrent.european_aqi);
+		const band = getAqiMeta(resolvedAqi ?? 0).band;
+		return { aqi: resolvedAqi, usAqi, band };
+	} catch {
+		return { aqi: null, usAqi: null, band: "moderate" };
+	}
+}
+
+export async function fetchPlaceFullSnapshot(
+	latitude: number,
+	longitude: number,
+	label: string,
+): Promise<EnvironmentalSnapshot> {
+	return fetchEnvironmentalSnapshot({ latitude, longitude, label });
+}
+
 export async function fetchCityAqiAverage(cityName: string): Promise<number> {
 	try {
 		const results = await searchPlaces(cityName, 5);
