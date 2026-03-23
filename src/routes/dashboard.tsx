@@ -156,13 +156,36 @@ const BreatheSafeNavigation = lazy(() =>
 		default: module.BreatheSafeNavigation,
 	})),
 );
+const ChronosScrubber = lazy(() =>
+	import("#/components/dashboard/ChronosScrubber").then((module) => ({
+		default: module.ChronosScrubber,
+	})),
+);
+const ThreatAttribution = lazy(() =>
+	import("#/components/dashboard/ThreatAttribution").then((module) => ({
+		default: module.ThreatAttribution,
+	})),
+);
+const CommandTerminal = lazy(() =>
+	import("#/components/dashboard/CommandTerminal").then((module) => ({
+		default: module.CommandTerminal,
+	})),
+);
 const CompareView = lazy(() =>
 	import("#/components/dashboard/CompareView").then((module) => ({
 		default: module.CompareView,
 	})),
 );
-
-
+const AudioToggle = lazy(() =>
+	import("#/components/dashboard/AudioToggle").then((module) => ({
+		default: module.AudioToggle,
+	})),
+);
+const RoutePlanner = lazy(() =>
+	import("#/components/dashboard/RoutePlanner").then((module) => ({
+		default: module.RoutePlanner,
+	})),
+);
 
 export const Route = createFileRoute("/dashboard")({
 	component: DashboardPage,
@@ -220,6 +243,22 @@ function NightModeOverlay() {
 				})}
 			</svg>
 		</div>
+	);
+}
+
+function TerminalOverlay() {
+	const showTerminal = useEnvStore((s) => s.showTerminal);
+	const setShowTerminal = useEnvStore((s) => s.setShowTerminal);
+	return (
+		<>
+			{showTerminal && (
+				<CommandTerminal
+					isOpen={showTerminal}
+					onClose={() => setShowTerminal(false)}
+					onToggle={() => setShowTerminal(!showTerminal)}
+				/>
+			)}
+		</>
 	);
 }
 
@@ -419,8 +458,14 @@ function DashboardPage() {
 						<>
 							<SmartAlerts />
 							<PolicySimulator />
+							<ChronosScrubber />
 							{mode === "citizen" && <CitizenView />}
-							{mode === "government" && <GovView />}
+							{mode === "government" && (
+								<>
+									<GovView />
+									<ThreatAttribution />
+								</>
+							)}
 							<HexagonDetailPanel />
 							<BreatheSafeNavigation
 								routes={[]}
@@ -428,6 +473,9 @@ function DashboardPage() {
 								selectedRouteId={selectedRouteId ?? undefined}
 								onClearRoute={handleClearRoute}
 							/>
+							<TerminalOverlay />
+							<AudioToggle />
+							<RoutePlanner />
 						</>
 					)}
 					{focusMode && (

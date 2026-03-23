@@ -11,7 +11,9 @@ import { useQueries } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapLibreMap } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { Route, Wind } from "lucide-react";
 import { fetchWindGrid } from "../../lib/environment";
+import { getAllRoutes } from "../../lib/multi-modal-routes";
 import { fetchRoadRoute } from "../../lib/routing";
 import { useEnvStore } from "../../store/envStore";
 
@@ -510,8 +512,63 @@ export function CityMap({
 	const activeInterventions = useEnvStore((s) => s.activeInterventions);
 	const showWind = useEnvStore((s) => s.showWind);
 	const setShowWind = useEnvStore((s) => s.setShowWind);
+	const currentWindSpeed = useEnvStore((s) => s.currentWindSpeed);
+	const highlightedMetric = useEnvStore((s) => s.highlightedMetric);
+	const setHighlightedMetric = useEnvStore((s) => s.setHighlightedMetric);
 	const selectedRouteId = useEnvStore((s) => s.selectedRouteId);
 	const setWindGridPoints = useEnvStore((s) => s.setWindGridPoints);
+	const routeDestination = useEnvStore((s) => s.routeDestination);
+	const setActiveRouteCoords = useEnvStore((s) => s.setActiveRouteCoords);
+	const setRouteResults = useEnvStore((s) => s.setRouteResults);
+	const showRoutePanel = useEnvStore((s) => s.showRoutePanel);
+	const setShowRoutePanel = useEnvStore((s) => s.setShowRoutePanel);
+	const identifiedSources = useEnvStore((s) => s.identifiedSources);
+
+	useEffect(() => {
+		if (!routeDestination || !userLocation) return;
+		const currentAqi = identifiedSources[0]?.aqi ?? 85;
+		const origin: [number, number] = [userLocation[0], userLocation[1]];
+
+		getAllRoutes(origin, routeDestination.coords, currentAqi)
+			.then((routes) => {
+				if (!routes || routes.length === 0) return;
+				const results: Record<
+					string,
+					{
+						distanceKm: number;
+						durationHours: number;
+						durationMinutes: number;
+						carbonGrams: number;
+						carbonKg: number;
+						aqi: number;
+						coordinates: [number, number][];
+					}
+				> = {};
+				routes.forEach((r) => {
+					results[r.mode] = {
+						distanceKm: r.distanceKm,
+						durationHours: r.durationHours,
+						durationMinutes: r.durationMinutes,
+						carbonGrams: r.carbonGrams,
+						carbonKg: r.carbonKg,
+						aqi: r.aqi,
+						coordinates: r.coordinates,
+					};
+				});
+				setRouteResults(results);
+				const active = routes.find((r) => r.mode === "car") ?? routes[0];
+				if (active) {
+					setActiveRouteCoords(active.coordinates);
+				}
+			})
+			.catch(() => {});
+	}, [
+		routeDestination,
+		userLocation,
+		identifiedSources,
+		setRouteResults,
+		setActiveRouteCoords,
+	]);
 
 	useEffect(() => {
 		if (userLocation) {
@@ -1087,6 +1144,79 @@ export function CityMap({
 		return layers;
 	}, [navigationRoutes, data, selectedRouteId]);
 
+	const activeRouteCoords = useEnvStore((s) => s.activeRouteCoords);
+	const routeMode = useEnvStore((s) => s.routeMode);
+
+	const globalRouteLayers = useMemo(() => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const layers: any[] = [];
+		if (!activeRouteCoords.length) return layers;
+
+		const isDashed =
+			routeMode === "train_electric" ||
+			routeMode === "train_diesel" ||
+			routeMode === "bus";
+		const lineWidth = 7;
+		const lineWidthMax = 12;
+		const tealColor: [number, number, number, number] = [20, 184, 166, 230];
+
+		layers.push(
+			new PathLayer({
+				id: "global-route-path",
+				data: [{ path: activeRouteCoords }],
+				pickable: true,
+				widthScale: 20,
+				widthMinPixels: lineWidth,
+				widthMaxPixels: lineWidthMax,
+				capRounded: true,
+				jointRounded: true,
+				getPath: (d) => d.path as [number, number][],
+				getColor: tealColor,
+				getWidth: lineWidth,
+				getDashArray: isDashed ? [10, 5] : null,
+			}),
+		);
+
+		const start = activeRouteCoords[0];
+		const end = activeRouteCoords[activeRouteCoords.length - 1];
+
+		layers.push(
+			new ScatterplotLayer({
+				id: "global-route-start",
+				data: [{ position: start }],
+				pickable: false,
+				opacity: 1,
+				filled: true,
+				stroked: true,
+				radiusMinPixels: 8,
+				radiusMaxPixels: 14,
+				lineWidthMinPixels: 3,
+				getPosition: (d) => d.position,
+				getFillColor: tealColor,
+				getLineColor: [255, 255, 255, 200] as [number, number, number, number],
+			}),
+		);
+
+		layers.push(
+			new ScatterplotLayer({
+				id: "global-route-end",
+				data: [{ position: end }],
+				pickable: false,
+				opacity: 1,
+				filled: true,
+				stroked: true,
+				radiusMinPixels: 8,
+				radiusMaxPixels: 14,
+				lineWidthMinPixels: 3,
+				getPosition: (d) => d.position,
+				getFillColor: [14, 165, 233, 255] as [number, number, number, number],
+				getLineColor: [255, 255, 255, 200] as [number, number, number, number],
+			}),
+		);
+
+		return layers;
+	}, [activeRouteCoords, routeMode]);
+
 	const layers = useMemo(() => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const allLayers: any[] = [];
@@ -1096,7 +1226,276 @@ export function CityMap({
 			? data
 			: data.filter((d) => d.score > 60 || d.score < 30);
 
-		if (showWind && windStreamlines.length > 0) {
+		const isWind = highlightedMetric === "wind";
+		const isPm25 = highlightedMetric === "pm25";
+		const isHumidity = highlightedMetric === "humidity";
+		const isTemperature = highlightedMetric === "temperature";
+		const isUv = highlightedMetric === "uv";
+
+		const metricCenterLat = userLocation ? userLocation[1] : 37.74;
+		const metricCenterLng = userLocation ? userLocation[0] : -122.4;
+
+		if (isPm25) {
+			const pm25Particles = Array.from({ length: 300 }, (_, idx) => {
+				const angle = (idx / 300) * Math.PI * 2 + Math.random() * 0.5;
+				const dist = Math.random() * 0.045 + 0.003;
+				const jitter = Math.random() * 0.003;
+				return {
+					position: [
+						metricCenterLng + Math.cos(angle) * dist + jitter,
+						metricCenterLat + Math.sin(angle) * dist + jitter,
+					] as [number, number],
+					radius: 30 + Math.random() * 80,
+					opacity: 0.4 + Math.random() * 0.4,
+					phase: (idx / 300) * Math.PI * 2,
+				};
+			});
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "pm25-particles",
+					data: pm25Particles,
+					pickable: false,
+					opacity: 1,
+					filled: true,
+					radiusMinPixels: 2,
+					radiusMaxPixels: 8,
+					getPosition: (d) => d.position,
+					getFillColor: (d) =>
+						[59, 130, 246, Math.round(d.opacity * 200)] as [
+							number,
+							number,
+							number,
+							number,
+						],
+					getRadius: (d) => d.radius,
+					updateTriggers: { getPosition: [highlightedMetric] },
+				}),
+			);
+			const pm25Dots = Array.from({ length: 150 }, (_, i) => {
+				const angle = (i / 150) * Math.PI * 2;
+				const dist = Math.random() * 0.05;
+				return {
+					position: [
+						metricCenterLng + Math.cos(angle) * dist,
+						metricCenterLat + Math.sin(angle) * dist,
+					] as [number, number],
+					radius: 4 + Math.random() * 6,
+				};
+			});
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "pm25-dot-overlay",
+					data: pm25Dots,
+					pickable: false,
+					opacity: 0.3,
+					filled: true,
+					radiusMinPixels: 1,
+					radiusMaxPixels: 4,
+					getPosition: (d) => d.position,
+					getFillColor: [147, 197, 253, 150],
+					getRadius: (d) => d.radius,
+				}),
+			);
+		}
+
+		if (isHumidity) {
+			const humidityParticles = Array.from({ length: 280 }, (_, idx) => {
+				const angle = (idx / 280) * Math.PI * 2 + Math.random();
+				const dist = Math.random() * 0.05 + 0.002;
+				return {
+					position: [
+						metricCenterLng + Math.cos(angle) * dist,
+						metricCenterLat + Math.sin(angle) * dist,
+					] as [number, number],
+					radius: 25 + Math.random() * 70,
+					dropSize: 3 + Math.random() * 5,
+					phase: 0,
+				};
+			});
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "humidity-particles",
+					data: humidityParticles,
+					pickable: false,
+					opacity: 1,
+					filled: true,
+					radiusMinPixels: 2,
+					radiusMaxPixels: 7,
+					getPosition: (d) => d.position,
+					getFillColor: [59, 130, 246, 180],
+					getRadius: (d) => d.dropSize,
+					updateTriggers: { getPosition: [highlightedMetric] },
+				}),
+			);
+			const humidityBlobs = Array.from({ length: 80 }, () => {
+				const angle = Math.random() * Math.PI * 2;
+				const dist = Math.random() * 0.045;
+				return {
+					position: [
+						metricCenterLng + Math.cos(angle) * dist,
+						metricCenterLat + Math.sin(angle) * dist,
+					] as [number, number],
+					radius: 60 + Math.random() * 120,
+				};
+			});
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "humidity-blobs",
+					data: humidityBlobs,
+					pickable: false,
+					opacity: 0.15,
+					filled: true,
+					radiusMinPixels: 15,
+					radiusMaxPixels: 30,
+					getPosition: (d) => d.position,
+					getFillColor: [147, 197, 253, 100],
+					getRadius: (d) => d.radius,
+				}),
+			);
+		}
+
+		if (isTemperature) {
+			const heatParticles = Array.from({ length: 200 }, () => {
+				const angle = Math.random() * Math.PI * 2;
+				const dist = Math.random() * 0.06;
+				const speed = Math.random() * 0.00005;
+				return {
+					position: [
+						metricCenterLng + Math.cos(angle) * dist,
+						metricCenterLat + Math.sin(angle) * dist,
+					] as [number, number],
+					radius: 4 + Math.random() * 8,
+					speed,
+				};
+			});
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "temperature-heat-particles",
+					data: heatParticles,
+					pickable: false,
+					opacity: 1,
+					filled: true,
+					radiusMinPixels: 2,
+					radiusMaxPixels: 10,
+					getPosition: (d) => d.position,
+					getFillColor: [251, 146, 60, 200],
+					getRadius: (d) => d.radius,
+				}),
+			);
+			const hotSpots = Array.from({ length: 40 }, () => {
+				const angle = Math.random() * Math.PI * 2;
+				const dist = Math.random() * 0.04;
+				return {
+					position: [
+						metricCenterLng + Math.cos(angle) * dist,
+						metricCenterLat + Math.sin(angle) * dist,
+					] as [number, number],
+					radius: 80 + Math.random() * 200,
+				};
+			});
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "temperature-hot-spots",
+					data: hotSpots,
+					pickable: false,
+					opacity: 0.12,
+					filled: true,
+					radiusMinPixels: 20,
+					radiusMaxPixels: 50,
+					getPosition: (d) => d.position,
+					getFillColor: [239, 68, 68, 120],
+					getRadius: (d) => d.radius,
+				}),
+			);
+		}
+
+		if (isUv) {
+			const sunLng = metricCenterLng + 0.06;
+			const sunLat = metricCenterLat + 0.04;
+			const rayCount = 16;
+			const uvRays = Array.from({ length: rayCount }, (_, i) => {
+				const angle = (i / rayCount) * Math.PI * 2;
+				const rayLength = 0.06 + Math.random() * 0.03;
+				return {
+					path: [
+						[sunLng, sunLat],
+						[
+							sunLng + Math.cos(angle) * rayLength,
+							sunLat + Math.sin(angle) * rayLength,
+						],
+					] as [number, number][],
+					width: 1 + Math.random() * 1.5,
+				};
+			});
+			allLayers.push(
+				new PathLayer({
+					id: "uv-rays",
+					data: uvRays,
+					pickable: false,
+					opacity: 0.6,
+					widthScale: 1,
+					widthMinPixels: 1,
+					widthMaxPixels: 2,
+					getPath: (d) => d.path,
+					getColor: [250, 204, 21, 180],
+					getWidth: (d) => d.width,
+					capRounded: true,
+				}),
+			);
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "uv-sun-core",
+					data: [{ position: [sunLng, sunLat] as [number, number] }],
+					pickable: false,
+					opacity: 1,
+					filled: true,
+					radiusMinPixels: 20,
+					radiusMaxPixels: 30,
+					getPosition: (d) => d.position,
+					getFillColor: [254, 240, 138, 255],
+				}),
+			);
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "uv-sun-glow",
+					data: [{ position: [sunLng, sunLat] as [number, number] }],
+					pickable: false,
+					opacity: 0.3,
+					filled: true,
+					radiusMinPixels: 30,
+					radiusMaxPixels: 50,
+					getPosition: (d) => d.position,
+					getFillColor: [250, 204, 21, 80],
+				}),
+			);
+			const uvDots = Array.from({ length: 120 }, () => {
+				const angle = Math.random() * Math.PI * 2;
+				const dist = 0.01 + Math.random() * 0.08;
+				return {
+					position: [
+						sunLng + Math.cos(angle) * dist,
+						sunLat + Math.sin(angle) * dist,
+					] as [number, number],
+					radius: 2 + Math.random() * 4,
+				};
+			});
+			allLayers.push(
+				new ScatterplotLayer({
+					id: "uv-particles",
+					data: uvDots,
+					pickable: false,
+					opacity: 0.5,
+					filled: true,
+					radiusMinPixels: 1,
+					radiusMaxPixels: 3,
+					getPosition: (d) => d.position,
+					getFillColor: [250, 204, 21, 120],
+					getRadius: (d) => d.radius,
+				}),
+			);
+		}
+
+		if (isWind && windStreamlines.length > 0) {
 			const arrowPaths = windStreamlines.map((s) => {
 				const rad = (s.direction * Math.PI) / 180;
 				const phaseOffset = windPhaseRef.current;
@@ -1525,6 +1924,7 @@ export function CityMap({
 		}
 
 		allLayers.push(...navigationPathLayers);
+		allLayers.push(...globalRouteLayers);
 
 		return allLayers;
 	}, [
@@ -1532,6 +1932,7 @@ export function CityMap({
 		combinedRouteSegments,
 		compareMarkers,
 		data,
+		globalRouteLayers,
 		greenMarker,
 		greenZones,
 		handleClick,
@@ -1540,11 +1941,11 @@ export function CityMap({
 		projectedData,
 		searchMarker,
 		showProjectionOnMap,
-		showWind,
 		userLocation,
+		highlightedMetric,
+		windStreamlines,
 		viewMode,
 		viewState,
-		windStreamlines,
 	]);
 
 	const tooltipRenderer = ({
@@ -1656,27 +2057,45 @@ export function CityMap({
 					/>
 					{viewMode === "3d" ? "3D Pillars" : "2D View"}
 				</button>
+
 				<button
 					type="button"
-					onClick={() => setShowWind(!showWind)}
+					onClick={() => setShowRoutePanel(!showRoutePanel)}
 					className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition-all ${
-						showWind
-							? "border-sky-500/50 bg-sky-500/20 text-sky-300 shadow-lg shadow-sky-500/20"
+						showRoutePanel
+							? "border-teal-500/50 bg-teal-500/20 text-teal-300 shadow-lg shadow-teal-500/10"
 							: "border-white/10 bg-black/60 text-zinc-300 backdrop-blur-md hover:bg-white/10"
 					}`}
 				>
-					<svg
-						className="h-3.5 w-3.5"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						aria-hidden="true"
-					>
-						<path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
-					</svg>
-					{showWind ? "Hide Wind" : "Show Wind"}
+					<Route className="h-3.5 w-3.5" />
+					<span>Route</span>
 				</button>
+
+				<button
+					type="button"
+					onClick={() => {
+						if (highlightedMetric === "wind") {
+							setHighlightedMetric(null);
+						} else {
+							setHighlightedMetric("wind");
+							setShowWind(true);
+						}
+					}}
+					className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition-all ${
+						highlightedMetric === "wind"
+							? "border-sky-500/50 bg-sky-500/20 text-sky-300 shadow-lg shadow-sky-500/10"
+							: "border-white/10 bg-black/60 text-zinc-300 backdrop-blur-md hover:bg-white/10"
+					}`}
+				>
+					<Wind className="h-3.5 w-3.5" />
+					<span>Wind</span>
+					{highlightedMetric === "wind" && currentWindSpeed != null && (
+						<span className="font-mono text-[9px] text-sky-500">
+							{Math.round(currentWindSpeed)}km/h
+						</span>
+					)}
+				</button>
+
 				{showProjectionOnMap && (
 					<div className="flex flex-col gap-1 rounded-xl border border-emerald-500/40 bg-black/70 px-3 py-2 backdrop-blur-md">
 						<div className="flex items-center justify-between">

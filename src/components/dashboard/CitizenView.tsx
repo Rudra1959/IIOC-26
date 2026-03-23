@@ -5,10 +5,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
 	Activity,
 	BarChart3,
+	Car,
 	CheckCircle2,
 	ChevronDown,
 	ChevronRight,
 	ChevronUp,
+	Droplets,
 	Filter,
 	Globe,
 	Heart,
@@ -24,8 +26,6 @@ import {
 	TrendingUp,
 	TriangleAlert,
 	Wind,
-	Droplets,
-	Car,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../../../convex/_generated/api";
@@ -46,7 +46,6 @@ import {
 } from "../../lib/environment";
 import { useEnvStore } from "../../store/envStore";
 import { Input } from "../ui/input";
-
 
 const aqiBandStyles: Record<
 	AqiBand,
@@ -261,8 +260,8 @@ export function CitizenView() {
 	const hourlyForecast = useEnvStore((s) => s.hourlyForecast);
 	const setNavigationRoutes = useEnvStore((s) => s.setNavigationRoutes);
 	const setSelectedRouteId = useEnvStore((s) => s.setSelectedRouteId);
-	const showWind = useEnvStore((s) => s.showWind);
-	const setShowWind = useEnvStore((s) => s.setShowWind);
+	const highlightedMetric = useEnvStore((s) => s.highlightedMetric);
+	const setHighlightedMetric = useEnvStore((s) => s.setHighlightedMetric);
 
 	const [placeQuery, setPlaceQuery] = useState("");
 	const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
@@ -649,90 +648,211 @@ export function CitizenView() {
 								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
 									AQI
 								</span>
-								<span className={`text-xl font-black leading-none mt-1 ${bandStyles.text}`}>
+								<span
+									className={`text-xl font-black leading-none mt-1 ${bandStyles.text}`}
+								>
 									{Math.round(aqiValue)}
-								</span>
-							</div>
-						</div>
-
-						<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#18181b]/50 p-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10">
-								<Activity className="h-5 w-5 text-orange-400" />
-							</div>
-							<div className="flex flex-col">
-								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-									PM2.5
-								</span>
-								<span className="text-xl font-black text-orange-400 leading-none mt-1">
-									{formatReading(localEnvironment?.pm25 ?? 54.7, 1)}
-								</span>
-							</div>
-						</div>
-
-						<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#18181b]/50 p-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
-								<Thermometer className="h-5 w-5 text-amber-500" />
-							</div>
-							<div className="flex flex-col">
-								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-									TEMP
-								</span>
-								<span className="text-xl font-black text-amber-500 leading-none mt-1">
-									{formatReading(localEnvironment?.temperature ?? 18.8, 1)}C
-								</span>
-							</div>
-						</div>
-
-						<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#18181b]/50 p-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
-								<Droplets className="h-5 w-5 text-blue-400" />
-							</div>
-							<div className="flex flex-col">
-								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-									HUMIDITY
-								</span>
-								<span className="text-xl font-black text-blue-400 leading-none mt-1">
-									{formatReading(localEnvironment?.humidity ?? 87)}%
 								</span>
 							</div>
 						</div>
 
 						<button
 							type="button"
-							onClick={() => setShowWind(!showWind)}
-							className={`flex items-center gap-3 rounded-2xl border cursor-pointer text-left transition-colors p-3 ${
-								showWind 
-									? "border-cyan-500/40 bg-cyan-500/10" 
+							onClick={() =>
+								setHighlightedMetric(
+									highlightedMetric === "pm25" ? null : "pm25",
+								)
+							}
+							className={`flex items-center gap-3 rounded-2xl border cursor-pointer text-left transition-all p-3 ${
+								highlightedMetric === "pm25"
+									? "border-orange-500/40 bg-orange-500/10 shadow-lg shadow-orange-500/10"
 									: "border-white/5 bg-[#18181b]/50 hover:bg-white/[0.04]"
 							}`}
-							title={showWind ? "Hide wind layer" : "Show wind layer"}
+							title={
+								highlightedMetric === "pm25"
+									? "Hide PM2.5 layer"
+									: "Show PM2.5 layer on map"
+							}
 						>
-							<div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${showWind ? "bg-cyan-500/20" : "bg-cyan-500/10"}`}>
-								<Car className={`h-5 w-5 ${showWind ? "text-cyan-400" : "text-cyan-500"}`} />
+							<div
+								className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${highlightedMetric === "pm25" ? "bg-orange-500/20" : "bg-orange-500/10"}`}
+							>
+								<Activity
+									className={`h-5 w-5 ${highlightedMetric === "pm25" ? "text-orange-300" : "text-orange-400"}`}
+								/>
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+									PM2.5
+								</span>
+								<span
+									className={`text-xl font-black leading-none mt-1 ${highlightedMetric === "pm25" ? "text-orange-300" : "text-orange-400"}`}
+								>
+									{formatReading(localEnvironment?.pm25 ?? 54.7, 1)}
+								</span>
+							</div>
+							{highlightedMetric === "pm25" && (
+								<div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
+							)}
+						</button>
+
+						<button
+							type="button"
+							onClick={() =>
+								setHighlightedMetric(
+									highlightedMetric === "temperature" ? null : "temperature",
+								)
+							}
+							className={`flex items-center gap-3 rounded-2xl border cursor-pointer text-left transition-all p-3 ${
+								highlightedMetric === "temperature"
+									? "border-amber-500/40 bg-amber-500/10 shadow-lg shadow-amber-500/10"
+									: "border-white/5 bg-[#18181b]/50 hover:bg-white/[0.04]"
+							}`}
+							title={
+								highlightedMetric === "temperature"
+									? "Hide temperature layer"
+									: "Show temperature layer on map"
+							}
+						>
+							<div
+								className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${highlightedMetric === "temperature" ? "bg-amber-500/20" : "bg-amber-500/10"}`}
+							>
+								<Thermometer
+									className={`h-5 w-5 ${highlightedMetric === "temperature" ? "text-amber-300" : "text-amber-500"}`}
+								/>
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+									TEMP
+								</span>
+								<span
+									className={`text-xl font-black leading-none mt-1 ${highlightedMetric === "temperature" ? "text-amber-300" : "text-amber-500"}`}
+								>
+									{formatReading(localEnvironment?.temperature ?? 18.8, 1)}C
+								</span>
+							</div>
+							{highlightedMetric === "temperature" && (
+								<div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+							)}
+						</button>
+
+						<button
+							type="button"
+							onClick={() =>
+								setHighlightedMetric(
+									highlightedMetric === "humidity" ? null : "humidity",
+								)
+							}
+							className={`flex items-center gap-3 rounded-2xl border cursor-pointer text-left transition-all p-3 ${
+								highlightedMetric === "humidity"
+									? "border-blue-500/40 bg-blue-500/10 shadow-lg shadow-blue-500/10"
+									: "border-white/5 bg-[#18181b]/50 hover:bg-white/[0.04]"
+							}`}
+							title={
+								highlightedMetric === "humidity"
+									? "Hide humidity layer"
+									: "Show humidity layer on map"
+							}
+						>
+							<div
+								className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${highlightedMetric === "humidity" ? "bg-blue-500/20" : "bg-blue-500/10"}`}
+							>
+								<Droplets
+									className={`h-5 w-5 ${highlightedMetric === "humidity" ? "text-blue-300" : "text-blue-400"}`}
+								/>
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+									HUMIDITY
+								</span>
+								<span
+									className={`text-xl font-black leading-none mt-1 ${highlightedMetric === "humidity" ? "text-blue-300" : "text-blue-400"}`}
+								>
+									{formatReading(localEnvironment?.humidity ?? 87)}%
+								</span>
+							</div>
+							{highlightedMetric === "humidity" && (
+								<div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+							)}
+						</button>
+
+						<button
+							type="button"
+							onClick={() =>
+								setHighlightedMetric(
+									highlightedMetric === "wind" ? null : "wind",
+								)
+							}
+							className={`flex items-center gap-3 rounded-2xl border cursor-pointer text-left transition-all p-3 ${
+								highlightedMetric === "wind"
+									? "border-cyan-500/40 bg-cyan-500/10 shadow-lg shadow-cyan-500/10"
+									: "border-white/5 bg-[#18181b]/50 hover:bg-white/[0.04]"
+							}`}
+							title={
+								highlightedMetric === "wind"
+									? "Hide wind layer"
+									: "Show wind layer on map"
+							}
+						>
+							<div
+								className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${highlightedMetric === "wind" ? "bg-cyan-500/20" : "bg-cyan-500/10"}`}
+							>
+								<Car
+									className={`h-5 w-5 ${highlightedMetric === "wind" ? "text-cyan-300" : "text-cyan-500"}`}
+								/>
 							</div>
 							<div className="flex flex-col">
 								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
 									WIND
 								</span>
-								<span className={`text-xl font-black leading-none mt-1 ${showWind ? "text-cyan-400" : "text-cyan-500"}`}>
+								<span
+									className={`text-xl font-black leading-none mt-1 ${highlightedMetric === "wind" ? "text-cyan-300" : "text-cyan-500"}`}
+								>
 									{formatReading(localEnvironment?.windSpeed ?? 3)} km/h
 								</span>
 							</div>
+							{highlightedMetric === "wind" && (
+								<div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+							)}
 						</button>
 
-						<div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#18181b]/50 p-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yellow-500/10">
-								<Sun className="h-5 w-5 text-yellow-500" />
+						<button
+							type="button"
+							onClick={() =>
+								setHighlightedMetric(highlightedMetric === "uv" ? null : "uv")
+							}
+							className={`flex items-center gap-3 rounded-2xl border cursor-pointer text-left transition-all p-3 ${
+								highlightedMetric === "uv"
+									? "border-yellow-500/40 bg-yellow-500/10 shadow-lg shadow-yellow-500/10"
+									: "border-white/5 bg-[#18181b]/50 hover:bg-white/[0.04]"
+							}`}
+							title={
+								highlightedMetric === "uv"
+									? "Hide UV layer"
+									: "Show UV layer on map"
+							}
+						>
+							<div
+								className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${highlightedMetric === "uv" ? "bg-yellow-500/20" : "bg-yellow-500/10"}`}
+							>
+								<Sun
+									className={`h-5 w-5 ${highlightedMetric === "uv" ? "text-yellow-300" : "text-yellow-500"}`}
+								/>
 							</div>
 							<div className="flex flex-col">
 								<span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
 									UV INDEX
 								</span>
-								<span className="text-xl font-black text-yellow-500 leading-none mt-1">
+								<span
+									className={`text-xl font-black leading-none mt-1 ${highlightedMetric === "uv" ? "text-yellow-300" : "text-yellow-500"}`}
+								>
 									{formatReading(localEnvironment?.uvIndex ?? 0.0, 1)}
 								</span>
 							</div>
-						</div>
+							{highlightedMetric === "uv" && (
+								<div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
+							)}
+						</button>
 					</div>
 
 					{calculations && (
@@ -807,7 +927,15 @@ export function CitizenView() {
 						) : (
 							<div className="flex items-center justify-center py-4 text-sm text-zinc-500">
 								<RefreshCw
-									className={`h-4 w-4 mr-2 ${hourlyQuery.isFetching ? "animate-spin" : ""}`}
+									className={`;
+h - 4;
+w - 4;
+mr - 2;
+$;
+{
+	hourlyQuery.isFetching ? "animate-spin" : "";
+}
+`}
 								/>
 								Loading forecast...
 							</div>

@@ -2,10 +2,10 @@ import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
 	Activity,
-	AlertTriangle,
 	BarChart3,
 	Droplets,
 	RefreshCw,
+	Sun,
 	Thermometer,
 	Wind,
 } from "lucide-react";
@@ -65,6 +65,8 @@ function PollutantRow({
 export function LiveGovPanel() {
 	const userLocation = useEnvStore((s) => s.userLocation);
 	const setWindData = useEnvStore((s) => s.setWindData);
+	const highlightedMetric = useEnvStore((s) => s.highlightedMetric);
+	const setHighlightedMetric = useEnvStore((s) => s.setHighlightedMetric);
 
 	const query = useTanstackQuery({
 		queryKey: ["liveGov", userLocation?.[0], userLocation?.[1]],
@@ -173,35 +175,94 @@ export function LiveGovPanel() {
 
 						<div className="flex-1 space-y-2">
 							<div className="grid grid-cols-2 gap-2">
-								<div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5">
-									<Thermometer className="h-3.5 w-3.5 text-orange-400" />
-									<div>
+								<button
+									type="button"
+									onClick={() =>
+										setHighlightedMetric(
+											highlightedMetric === "temperature"
+												? null
+												: "temperature",
+										)
+									}
+									className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-pointer text-left transition-all ${
+										highlightedMetric === "temperature"
+											? "border-amber-500/40 bg-amber-500/10"
+											: "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+									}`}
+								>
+									<Thermometer
+										className={`h-3.5 w-3.5 ${highlightedMetric === "temperature" ? "text-amber-300" : "text-orange-400"}`}
+									/>
+									<div className="relative">
 										<p className="font-mono text-[7px] text-zinc-600">Temp</p>
-										<p className="font-mono text-[10px] font-bold text-orange-400">
+										<p
+											className={`font-mono text-[10px] font-bold ${highlightedMetric === "temperature" ? "text-amber-300" : "text-orange-400"}`}
+										>
 											{formatReading(data?.temperature ?? null, 1)}°C
 										</p>
+										{highlightedMetric === "temperature" && (
+											<div className="absolute -right-3 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+										)}
 									</div>
-								</div>
-								<div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5">
-									<Droplets className="h-3.5 w-3.5 text-blue-400" />
-									<div>
+								</button>
+								<button
+									type="button"
+									onClick={() =>
+										setHighlightedMetric(
+											highlightedMetric === "humidity" ? null : "humidity",
+										)
+									}
+									className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-pointer text-left transition-all ${
+										highlightedMetric === "humidity"
+											? "border-blue-500/40 bg-blue-500/10"
+											: "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+									}`}
+								>
+									<Droplets
+										className={`h-3.5 w-3.5 ${highlightedMetric === "humidity" ? "text-blue-300" : "text-blue-400"}`}
+									/>
+									<div className="relative">
 										<p className="font-mono text-[7px] text-zinc-600">
 											Humidity
 										</p>
-										<p className="font-mono text-[10px] font-bold text-blue-400">
+										<p
+											className={`font-mono text-[10px] font-bold ${highlightedMetric === "humidity" ? "text-blue-300" : "text-blue-400"}`}
+										>
 											{formatReading(data?.humidity ?? null)}%
 										</p>
+										{highlightedMetric === "humidity" && (
+											<div className="absolute -right-3 -top-0.5 h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+										)}
 									</div>
-								</div>
-								<div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5">
-									<Wind className="h-3.5 w-3.5 text-cyan-400" />
-									<div>
+								</button>
+								<button
+									type="button"
+									onClick={() =>
+										setHighlightedMetric(
+											highlightedMetric === "wind" ? null : "wind",
+										)
+									}
+									className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-pointer text-left transition-all ${
+										highlightedMetric === "wind"
+											? "border-cyan-500/40 bg-cyan-500/10"
+											: "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+									}`}
+								>
+									<Wind
+										className={`h-3.5 w-3.5 ${highlightedMetric === "wind" ? "text-cyan-300" : "text-cyan-400"}`}
+									/>
+									<div className="relative">
 										<p className="font-mono text-[7px] text-zinc-600">Wind</p>
-										<p className="font-mono text-[10px] font-bold text-cyan-400">
+										<p
+											className={`font-mono text-[10px] font-bold ${highlightedMetric === "wind" ? "text-cyan-300" : "text-cyan-400"}`}
+										>
 											{formatReading(data?.windSpeed ?? null)} km/h
 										</p>
+										{highlightedMetric === "wind" && (
+											<div className="absolute -right-3 -top-0.5 h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+										)}
 									</div>
-								</div>
+								</button>
 								<div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5">
 									<BarChart3 className="h-3.5 w-3.5 text-yellow-400" />
 									<div>
@@ -312,26 +373,60 @@ export function LiveGovPanel() {
 					</div>
 
 					<div className="grid grid-cols-2 gap-2">
-						<div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5">
-							<AlertTriangle className="h-3.5 w-3.5 text-red-400" />
-							<div>
-								<p className="font-mono text-[7px] text-zinc-600">Dust / AOD</p>
-								<p className="font-mono text-[10px] font-bold text-red-400">
-									{formatReading(data?.aerosolOpticalDepth ?? null, 3)}
+						<button
+							type="button"
+							onClick={() =>
+								setHighlightedMetric(
+									highlightedMetric === "pm25" ? null : "pm25",
+								)
+							}
+							className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-pointer text-left transition-all ${
+								highlightedMetric === "pm25"
+									? "border-orange-500/40 bg-orange-500/10"
+									: "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+							}`}
+						>
+							<Activity
+								className={`h-3.5 w-3.5 ${highlightedMetric === "pm25" ? "text-orange-300" : "text-orange-400"}`}
+							/>
+							<div className="relative">
+								<p className="font-mono text-[7px] text-zinc-600">PM2.5</p>
+								<p
+									className={`font-mono text-[10px] font-bold ${highlightedMetric === "pm25" ? "text-orange-300" : "text-orange-400"}`}
+								>
+									{formatReading(data?.pm25 ?? null, 1)}
 								</p>
+								{highlightedMetric === "pm25" && (
+									<div className="absolute -right-3 -top-0.5 h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
+								)}
 							</div>
-						</div>
-						<div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5">
-							<div className="flex h-3.5 w-3.5 items-center justify-center rounded bg-yellow-500/20 text-[6px] font-bold text-yellow-400">
-								UV
-							</div>
-							<div>
+						</button>
+						<button
+							type="button"
+							onClick={() =>
+								setHighlightedMetric(highlightedMetric === "uv" ? null : "uv")
+							}
+							className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-pointer text-left transition-all ${
+								highlightedMetric === "uv"
+									? "border-yellow-500/40 bg-yellow-500/10"
+									: "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+							}`}
+						>
+							<Sun
+								className={`h-3.5 w-3.5 ${highlightedMetric === "uv" ? "text-yellow-300" : "text-yellow-400"}`}
+							/>
+							<div className="relative">
 								<p className="font-mono text-[7px] text-zinc-600">UV Index</p>
-								<p className="font-mono text-[10px] font-bold text-yellow-400">
+								<p
+									className={`font-mono text-[10px] font-bold ${highlightedMetric === "uv" ? "text-yellow-300" : "text-yellow-400"}`}
+								>
 									{formatReading(data?.uvIndex ?? null)}
 								</p>
+								{highlightedMetric === "uv" && (
+									<div className="absolute -right-3 -top-0.5 h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
+								)}
 							</div>
-						</div>
+						</button>
 					</div>
 
 					{data?.weatherLabel && (

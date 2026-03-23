@@ -11,6 +11,8 @@ export interface PolicyIntervention {
 	effect: number;
 	maxReduction: number;
 	unit: string;
+	economicImpact: number;
+	publicApproval: number;
 }
 
 export interface CityPolicy {
@@ -21,56 +23,68 @@ export interface CityPolicy {
 
 const DEFAULT_POLICIES: CityPolicy[] = [
 	{
-		cityId: "sf-bay",
-		cityName: "San Francisco Bay Area",
+		cityId: "bokaro",
+		cityName: "Bokaro Steel City",
 		interventions: [
 			{
 				id: "heavy-vehicles",
 				name: "Restrict Heavy Vehicles",
-				description: "Limit diesel trucks in high-density zones",
+				description: "Limit trucks on city roads",
 				effect: 0,
 				maxReduction: 35,
 				unit: "% restriction",
+				economicImpact: 800000,
+				publicApproval: -15,
 			},
 			{
 				id: "construction",
 				name: "Construction Activity Halt",
-				description: "Pause dust-generating construction work",
+				description: "Stop construction at industrial zones",
 				effect: 0,
 				maxReduction: 20,
 				unit: "% halt",
+				economicImpact: 1200000,
+				publicApproval: -25,
 			},
 			{
 				id: "street-misting",
 				name: "Street Misting",
-				description: "Activate water misting systems",
+				description: "Deploy water misting trucks",
 				effect: 0,
 				maxReduction: 15,
 				unit: "% coverage",
+				economicImpact: 300000,
+				publicApproval: 10,
 			},
 			{
 				id: "industrial-emissions",
 				name: "Industrial Emissions Cap",
-				description: "Temporarily reduce factory output",
+				description: "Reduce SAIL plant output",
 				effect: 0,
 				maxReduction: 25,
 				unit: "% cap",
+				economicImpact: 5000000,
+				publicApproval: 5,
 			},
 			{
 				id: "public-transit",
 				name: "Free Public Transit",
-				description: "Waive transit fares to reduce car trips",
+				description: "Free bus rides for commuters",
 				effect: 0,
 				maxReduction: 18,
 				unit: "% free fares",
+				economicImpact: 450000,
+				publicApproval: 35,
 			},
 			{
 				id: "staggered-hours",
 				name: "Staggered Work Hours",
-				description: "Flexible office hours to decongest rush",
+				description: "Flex shifts for industries",
 				effect: 0,
 				maxReduction: 12,
 				unit: "% stagger",
+				economicImpact: 150000,
+				publicApproval: 5,
 			},
 		],
 	},
@@ -85,6 +99,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 40,
 				unit: "% restriction",
+				economicImpact: 15000000,
+				publicApproval: -20,
 			},
 			{
 				id: "construction",
@@ -93,6 +109,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 30,
 				unit: "% halt",
+				economicImpact: 25000000,
+				publicApproval: -30,
 			},
 			{
 				id: "street-misting",
@@ -101,6 +119,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 20,
 				unit: "% coverage",
+				economicImpact: 800000,
+				publicApproval: 15,
 			},
 			{
 				id: "industrial-emissions",
@@ -109,6 +129,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 35,
 				unit: "% cap",
+				economicImpact: 40000000,
+				publicApproval: 10,
 			},
 			{
 				id: "public-transit",
@@ -117,6 +139,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 25,
 				unit: "% free fares",
+				economicImpact: 12000000,
+				publicApproval: 40,
 			},
 			{
 				id: "staggered-hours",
@@ -125,60 +149,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 15,
 				unit: "% stagger",
-			},
-		],
-	},
-	{
-		cityId: "beijing",
-		cityName: "Beijing-Tianjin-Hebei",
-		interventions: [
-			{
-				id: "heavy-vehicles",
-				name: "Restrict Heavy Vehicles",
-				description: "Odd-even license plate policy",
-				effect: 0,
-				maxReduction: 45,
-				unit: "% restriction",
-			},
-			{
-				id: "construction",
-				name: "Construction Activity Halt",
-				description: "Non-essential construction suspension",
-				effect: 0,
-				maxReduction: 25,
-				unit: "% halt",
-			},
-			{
-				id: "street-misting",
-				name: "Street Misting",
-				description: "Urban misting network activation",
-				effect: 0,
-				maxReduction: 18,
-				unit: "% coverage",
-			},
-			{
-				id: "industrial-emissions",
-				name: "Industrial Emissions Cap",
-				description: "Steel & cement output limits",
-				effect: 0,
-				maxReduction: 30,
-				unit: "% cap",
-			},
-			{
-				id: "public-transit",
-				name: "Free Public Transit",
-				description: "Municipal transit fare subsidy",
-				effect: 0,
-				maxReduction: 20,
-				unit: "% free fares",
-			},
-			{
-				id: "staggered-hours",
-				name: "Staggered Work Hours",
-				description: "State enterprise flex-time policy",
-				effect: 0,
-				maxReduction: 10,
-				unit: "% stagger",
+				economicImpact: 200000,
+				publicApproval: 5,
 			},
 		],
 	},
@@ -193,6 +165,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 30,
 				unit: "% restriction",
+				economicImpact: 8000000,
+				publicApproval: -10,
 			},
 			{
 				id: "construction",
@@ -201,6 +175,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 22,
 				unit: "% halt",
+				economicImpact: 15000000,
+				publicApproval: -20,
 			},
 			{
 				id: "street-misting",
@@ -209,6 +185,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 15,
 				unit: "% coverage",
+				economicImpact: 500000,
+				publicApproval: 8,
 			},
 			{
 				id: "industrial-emissions",
@@ -217,6 +195,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 28,
 				unit: "% cap",
+				economicImpact: 20000000,
+				publicApproval: 5,
 			},
 			{
 				id: "public-transit",
@@ -225,6 +205,8 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 22,
 				unit: "% free fares",
+				economicImpact: 6000000,
+				publicApproval: 35,
 			},
 			{
 				id: "staggered-hours",
@@ -233,64 +215,146 @@ const DEFAULT_POLICIES: CityPolicy[] = [
 				effect: 0,
 				maxReduction: 14,
 				unit: "% stagger",
+				economicImpact: 300000,
+				publicApproval: 0,
 			},
 		],
 	},
 	{
-		cityId: "london",
-		cityName: "London Greater Area",
+		cityId: "kolkata",
+		cityName: "Kolkata Metro",
 		interventions: [
 			{
 				id: "heavy-vehicles",
 				name: "Restrict Heavy Vehicles",
-				description: "Ultra-low emission zone expansion",
+				description: "Ban diesel in Howrah zone",
 				effect: 0,
-				maxReduction: 38,
+				maxReduction: 28,
 				unit: "% restriction",
+				economicImpact: 4000000,
+				publicApproval: -12,
 			},
 			{
 				id: "construction",
 				name: "Construction Activity Halt",
-				description: "Dust suppression mandate on sites",
+				description: "Stop brick kiln operations",
 				effect: 0,
-				maxReduction: 15,
+				maxReduction: 25,
 				unit: "% halt",
+				economicImpact: 6000000,
+				publicApproval: -22,
 			},
 			{
 				id: "street-misting",
 				name: "Street Misting",
-				description: "Highway water spray systems",
+				description: "Hooghly river misting boats",
 				effect: 0,
-				maxReduction: 10,
+				maxReduction: 12,
 				unit: "% coverage",
+				economicImpact: 250000,
+				publicApproval: 12,
 			},
 			{
 				id: "industrial-emissions",
 				name: "Industrial Emissions Cap",
-				description: "UK ETS cap tightening",
+				description: "Tata Steel output reduction",
 				effect: 0,
-				maxReduction: 20,
+				maxReduction: 30,
 				unit: "% cap",
+				economicImpact: 18000000,
+				publicApproval: 8,
 			},
 			{
 				id: "public-transit",
 				name: "Free Public Transit",
-				description: "TfL fare holiday on alert days",
+				description: "Metro rides free on red alert",
 				effect: 0,
-				maxReduction: 16,
+				maxReduction: 18,
 				unit: "% free fares",
+				economicImpact: 3000000,
+				publicApproval: 30,
 			},
 			{
 				id: "staggered-hours",
 				name: "Staggered Work Hours",
-				description: "Crossrail and commute dispersal",
+				description: "Port and jute mill shifts",
 				effect: 0,
-				maxReduction: 11,
+				maxReduction: 10,
 				unit: "% stagger",
+				economicImpact: 800000,
+				publicApproval: -5,
+			},
+		],
+	},
+	{
+		cityId: "chennai",
+		cityName: "Chennai Metro",
+		interventions: [
+			{
+				id: "heavy-vehicles",
+				name: "Restrict Heavy Vehicles",
+				description: "Truck ban near IT corridors",
+				effect: 0,
+				maxReduction: 25,
+				unit: "% restriction",
+				economicImpact: 3500000,
+				publicApproval: -8,
+			},
+			{
+				id: "construction",
+				name: "Construction Activity Halt",
+				description: "Stop sand mining transport",
+				effect: 0,
+				maxReduction: 18,
+				unit: "% halt",
+				economicImpact: 5000000,
+				publicApproval: -15,
+			},
+			{
+				id: "street-misting",
+				name: "Street Misting",
+				description: "Marina beach misting cannons",
+				effect: 0,
+				maxReduction: 10,
+				unit: "% coverage",
+				economicImpact: 200000,
+				publicApproval: 20,
+			},
+			{
+				id: "industrial-emissions",
+				name: "Industrial Emissions Cap",
+				description: "SIPCOT industrial zone cap",
+				effect: 0,
+				maxReduction: 22,
+				unit: "% cap",
+				economicImpact: 12000000,
+				publicApproval: 3,
+			},
+			{
+				id: "public-transit",
+				name: "Free Public Transit",
+				description: "MTC bus fare waiver",
+				effect: 0,
+				maxReduction: 16,
+				unit: "% free fares",
+				economicImpact: 2000000,
+				publicApproval: 28,
+			},
+			{
+				id: "staggered-hours",
+				name: "Staggered Work Hours",
+				description: "IT parks in OMR",
+				effect: 0,
+				maxReduction: 8,
+				unit: "% stagger",
+				economicImpact: 150000,
+				publicApproval: 8,
 			},
 		],
 	},
 ];
+
+const INITIAL_BUDGET = 100000000;
 
 function calculateProjectedAqi(
 	baseAqi: number,
@@ -329,6 +393,37 @@ function calculatePopulationProtected(
 		interventions.find((i) => i.id === "heavy-vehicles")?.effect ?? 0;
 	const protectionFactor = (coverageEffect + restrictionEffect) / 200;
 	return Math.round(totalPopulation * protectionFactor);
+}
+
+function calculateEconomicImpact(interventions: PolicyIntervention[]): number {
+	return interventions.reduce((sum, intervention) => {
+		const effect = intervention.effect / 100;
+		const dailyCost = intervention.economicImpact * effect;
+		return sum + dailyCost;
+	}, 0);
+}
+
+function calculatePublicApproval(interventions: PolicyIntervention[]): number {
+	let weightedApproval = 0;
+	let totalWeight = 0;
+
+	interventions.forEach((intervention) => {
+		if (intervention.effect > 0) {
+			weightedApproval +=
+				intervention.publicApproval * (intervention.effect / 100);
+			totalWeight += intervention.effect / 100;
+		}
+	});
+
+	return totalWeight > 0 ? Math.round(weightedApproval / totalWeight) : 50;
+}
+
+function calculateHospitalAdmissionsAvoided(
+	projectedReduction: number,
+	population: number,
+): number {
+	const reductionRate = projectedReduction / 100;
+	return Math.round(population * reductionRate * 0.001);
 }
 
 function AqiBadge({ value }: { value: number }) {
@@ -375,6 +470,7 @@ export function PolicySimulator() {
 		},
 	);
 	const [isCollapsed, setIsCollapsed] = useState(false);
+	const [cityBudget, setCityBudget] = useState(INITIAL_BUDGET);
 
 	const cityPolicies = useMemo(() => DEFAULT_POLICIES, []);
 
@@ -392,7 +488,15 @@ export function PolicySimulator() {
 		interventions,
 		45000,
 	);
+	const economicImpact = calculateEconomicImpact(interventions);
+	const publicApproval = calculatePublicApproval(interventions);
+	const hospitalAdmissionsAvoided = calculateHospitalAdmissionsAvoided(
+		aqiReduction,
+		populationProtected,
+	);
 	const isActive = interventions.some((i) => i.effect > 0);
+	const budgetWarning = cityBudget - economicImpact < 0;
+	const approvalWarning = publicApproval < 30;
 
 	const fastest = navigationRoutes.fastest;
 	const cleanest = navigationRoutes.cleanest;
@@ -431,6 +535,7 @@ export function PolicySimulator() {
 
 	const handleCityChange = (cityId: string) => {
 		setSelectedCity(cityId);
+		setCityBudget(INITIAL_BUDGET);
 		if (cityId === "auto") {
 			setInterventions(DEFAULT_POLICIES[0].interventions);
 			return;
@@ -445,6 +550,7 @@ export function PolicySimulator() {
 		setProjectedAqiDelta(0);
 		setProjectionMode(false);
 		setShowProjectionOnMap(false);
+		setCityBudget(INITIAL_BUDGET);
 	};
 
 	const handleTabSelect = (tab: string) => {
@@ -808,6 +914,87 @@ export function PolicySimulator() {
 										{populationProtected.toLocaleString()}
 									</p>
 								</div>
+							</div>
+
+							<div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-2">
+								<div className="mb-2 flex items-center justify-between">
+									<span className="font-mono text-[9px] uppercase tracking-widest text-amber-400/60">
+										Consequence Engine
+									</span>
+									<span className="font-mono text-[9px] text-zinc-500">
+										City Budget:{" "}
+										<span
+											className={
+												budgetWarning ? "text-red-400" : "text-emerald-400"
+											}
+										>
+											{formatINR(cityBudget)}
+										</span>
+									</span>
+								</div>
+
+								<div className="mb-2 grid grid-cols-2 gap-2">
+									<div className="rounded border border-red-500/20 bg-red-500/5 p-2 text-center">
+										<p className="font-mono text-[7px] uppercase tracking-wider text-red-400/60">
+											Economic Impact
+										</p>
+										<p
+											className={`font-mono text-[12px] font-bold ${economicImpact > 0 ? "text-red-400" : "text-zinc-500"}`}
+										>
+											{economicImpact > 0
+												? `-${formatINR(economicImpact)}`
+												: "₹0"}
+										</p>
+										<p className="font-mono text-[6px] text-red-300/40">
+											per day
+										</p>
+									</div>
+									<div className="rounded border border-blue-500/20 bg-blue-500/5 p-2 text-center">
+										<p className="font-mono text-[7px] uppercase tracking-wider text-blue-400/60">
+											Public Approval
+										</p>
+										<p
+											className={`font-mono text-[12px] font-bold ${approvalWarning ? "text-red-400" : "text-blue-400"}`}
+										>
+											{publicApproval}%
+										</p>
+										<div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-white/5">
+											<div
+												className={`h-full rounded-full ${approvalWarning ? "bg-red-500" : "bg-blue-500"}`}
+												style={{ width: `${publicApproval}%` }}
+											/>
+										</div>
+									</div>
+								</div>
+
+								{budgetWarning && (
+									<div className="mb-2 flex items-center gap-1.5 rounded bg-red-500/20 px-2 py-1 font-mono text-[9px] text-red-300">
+										<span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+										<span>Budget exhausted! Interventions paused.</span>
+									</div>
+								)}
+
+								{approvalWarning && isActive && (
+									<div className="mb-2 flex items-center gap-1.5 rounded bg-amber-500/20 px-2 py-1 font-mono text-[9px] text-amber-300">
+										<span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+										<span>Low approval: citizens protesting restrictions</span>
+									</div>
+								)}
+
+								<div className="flex items-center justify-between rounded bg-black/40 px-2 py-1 font-mono text-[9px] text-zinc-400">
+									<span>Hospital Admissions Avoided</span>
+									<span className="font-bold text-emerald-400">
+										{hospitalAdmissionsAvoided}/day
+									</span>
+								</div>
+
+								<button
+									type="button"
+									onClick={() => setCityBudget(INITIAL_BUDGET)}
+									className="mt-2 w-full rounded border border-amber-500/20 bg-amber-500/10 px-2 py-1 font-mono text-[9px] text-amber-400 transition-colors hover:bg-amber-500/20"
+								>
+									Refill Budget (+{formatINR(INITIAL_BUDGET)})
+								</button>
 							</div>
 
 							<button

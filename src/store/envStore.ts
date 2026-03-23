@@ -197,6 +197,10 @@ interface EnvState {
 	setProjectedAqiDelta: (delta: number) => void;
 	showWind: boolean;
 	setShowWind: (show: boolean) => void;
+	highlightedMetric: "pm25" | "temperature" | "humidity" | "wind" | "uv" | null;
+	setHighlightedMetric: (metric: EnvState["highlightedMetric"]) => void;
+	showTerminal: boolean;
+	setShowTerminal: (show: boolean) => void;
 	selectedRouteId: string | null;
 	setSelectedRouteId: (id: string | null) => void;
 	currentWindSpeed: number | null;
@@ -221,6 +225,38 @@ interface EnvState {
 			direction: number;
 		}[],
 	) => void;
+	routeDestination: {
+		id: string;
+		name: string;
+		country: string;
+		coords: [number, number];
+	} | null;
+	setRouteDestination: (dest: EnvState["routeDestination"]) => void;
+	routeMode:
+		| "car"
+		| "bus"
+		| "train_electric"
+		| "train_diesel"
+		| "flight"
+		| "bike"
+		| "walk";
+	setRouteMode: (mode: EnvState["routeMode"]) => void;
+	routeResults: {
+		[mode: string]: {
+			distanceKm: number;
+			durationHours: number;
+			durationMinutes: number;
+			carbonGrams: number;
+			carbonKg: number;
+			aqi: number;
+			coordinates: [number, number][];
+		};
+	};
+	setRouteResults: (results: EnvState["routeResults"]) => void;
+	activeRouteCoords: [number, number][];
+	setActiveRouteCoords: (coords: [number, number][]) => void;
+	showRoutePanel: boolean;
+	setShowRoutePanel: (show: boolean) => void;
 }
 
 export const useEnvStore = create<EnvState>()(
@@ -323,6 +359,10 @@ export const useEnvStore = create<EnvState>()(
 			setProjectedAqiDelta: (delta) => set({ projectedAqiDelta: delta }),
 			showWind: false,
 			setShowWind: (show) => set({ showWind: show }),
+			highlightedMetric: null,
+			setHighlightedMetric: (metric) => set({ highlightedMetric: metric }),
+			showTerminal: false,
+			setShowTerminal: (show) => set({ showTerminal: show }),
 			selectedRouteId: null,
 			setSelectedRouteId: (id) => set({ selectedRouteId: id }),
 			currentWindSpeed: null,
@@ -336,6 +376,16 @@ export const useEnvStore = create<EnvState>()(
 				}),
 			windGridPoints: [],
 			setWindGridPoints: (points) => set({ windGridPoints: points }),
+			routeDestination: null,
+			setRouteDestination: (dest) => set({ routeDestination: dest }),
+			routeMode: "car",
+			setRouteMode: (mode) => set({ routeMode: mode }),
+			routeResults: {},
+			setRouteResults: (results) => set({ routeResults: results }),
+			activeRouteCoords: [],
+			setActiveRouteCoords: (coords) => set({ activeRouteCoords: coords }),
+			showRoutePanel: false,
+			setShowRoutePanel: (show) => set({ showRoutePanel: show }),
 		}),
 		{
 			name: "airsentinel-env-store",
