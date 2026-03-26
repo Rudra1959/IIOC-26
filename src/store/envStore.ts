@@ -257,6 +257,18 @@ interface EnvState {
 	setActiveRouteCoords: (coords: [number, number][]) => void;
 	showRoutePanel: boolean;
 	setShowRoutePanel: (show: boolean) => void;
+	appMode: "monitor" | "analyze" | "act";
+	setAppMode: (mode: "monitor" | "analyze" | "act") => void;
+	selectedMapPoint: {
+		position: [number, number];
+		score: number;
+		trend: "rising" | "stable" | "falling";
+		aqi?: number;
+		pm25?: number;
+		no2?: number;
+		o3?: number;
+	} | null;
+	setSelectedMapPoint: (point: EnvState["selectedMapPoint"]) => void;
 }
 
 export const useEnvStore = create<EnvState>()(
@@ -386,6 +398,10 @@ export const useEnvStore = create<EnvState>()(
 			setActiveRouteCoords: (coords) => set({ activeRouteCoords: coords }),
 			showRoutePanel: false,
 			setShowRoutePanel: (show) => set({ showRoutePanel: show }),
+			appMode: "monitor",
+			setAppMode: (mode) => set({ appMode: mode }),
+			selectedMapPoint: null,
+			setSelectedMapPoint: (point) => set({ selectedMapPoint: point }),
 		}),
 		{
 			name: "airsentinel-env-store",

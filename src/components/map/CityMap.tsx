@@ -821,13 +821,22 @@ export function CityMap({
 		[generatedRoutes, routeSegments],
 	);
 
+	const setSelectedMapPoint = useEnvStore((s) => s.setSelectedMapPoint);
+
 	const handleClick = useCallback(
 		(info: PickingInfo) => {
 			if (info.coordinate && info.object && "score" in info.object) {
+				const obj = info.object as ImpactData;
 				setClickedHexPosition({ x: info.x ?? 0, y: info.y ?? 0 });
+				setSelectedMapPoint({
+					position: obj.position,
+					score: obj.score,
+					trend: obj.trend,
+					aqi: obj.score,
+				});
 			}
 		},
-		[setClickedHexPosition],
+		[setClickedHexPosition, setSelectedMapPoint],
 	);
 
 	const projectedData = useMemo(() => {

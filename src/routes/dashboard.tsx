@@ -8,7 +8,11 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import { DataTrustBadge } from "#/components/dashboard/DataTrustBadge";
+import { MapDetailPanel } from "#/components/dashboard/MapDetailPanel";
 import { ModeSwitcher } from "#/components/dashboard/ModeSwitcher";
+import { ModeToggle } from "#/components/dashboard/ModeToggle";
+import { OnboardingCard } from "#/components/dashboard/OnboardingCard";
 import { TopWidgetBar } from "#/components/dashboard/TopWidgetBar";
 import type { RouteSegment } from "#/components/map/CityMap";
 import { calculateAlternativeRoutes } from "#/lib/route-optimizer";
@@ -445,15 +449,19 @@ function DashboardPage() {
 					</button>
 				</div>
 
-				<TopWidgetBar />
-
 				<div className="flex items-center gap-3">
-					<ModeSwitcher />
-					<div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-black/40 px-3 py-2 backdrop-blur-md">
-						<span className="hidden text-xs text-zinc-400 sm:block">
-							Welcome, {user?.firstName ?? "Agent"}
-						</span>
-						<UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+					<TopWidgetBar />
+					<OnboardingCard />
+					<ModeToggle />
+					<div className="flex items-center gap-3">
+						<ModeSwitcher />
+						<DataTrustBadge />
+						<div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-black/40 px-3 py-2 backdrop-blur-md">
+							<span className="hidden text-xs text-zinc-400 sm:block">
+								Welcome, {user?.firstName ?? "Agent"}
+							</span>
+							<UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+						</div>
 					</div>
 				</div>
 			</div>
@@ -467,6 +475,7 @@ function DashboardPage() {
 			<Suspense fallback={<OverlaySkeleton />}>
 				<div className="absolute inset-0 z-10 pointer-events-none">
 					<CompareView />
+					<MapDetailPanel />
 					{!focusMode && (
 						<>
 							<SmartAlerts />

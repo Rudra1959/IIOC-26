@@ -8,7 +8,7 @@ const MILESTONES = [
 	{ year: 2020, aqi: 98, event: "COVID lockdown" },
 	{ year: 2022, aqi: 182, event: "Post-lockdown surge" },
 	{ year: 2024, aqi: 156, event: "Steel plant expansion" },
-	{ year: 2025, aqi: 144, event: "Current" },
+	{ year: 2026, aqi: 144, event: "Current" },
 ];
 
 const FUTURE = [
@@ -34,7 +34,7 @@ function skyGradient(aqi: number) {
 }
 
 export function TimeMachineModal() {
-	const [year, setYear] = useState(2025);
+	const [year, setYear] = useState(2026);
 	const [showFuture, setShowFuture] = useState(false);
 
 	const pastData = MILESTONES;
@@ -84,7 +84,7 @@ export function TimeMachineModal() {
 				<div>
 					<div className="mb-2 flex items-center justify-between">
 						<p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
-							2015 → 2025
+							2015 → 2026
 						</p>
 						<span className="font-mono text-[10px] font-bold text-white">
 							{year}
@@ -93,7 +93,7 @@ export function TimeMachineModal() {
 					<input
 						type="range"
 						min="2015"
-						max="2025"
+						max="2026"
 						value={year}
 						onChange={(e) => setYear(Number(e.target.value))}
 						className="h-2 w-full cursor-pointer appearance-none rounded-full accent-purple-500"
