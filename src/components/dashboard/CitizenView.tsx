@@ -45,7 +45,12 @@ import {
 	searchPlaces,
 } from "../../lib/environment";
 import { useEnvStore } from "../../store/envStore";
+import { useGamificationStore } from "../../store/gamificationStore";
+import { CircularGauge } from "../ui/CircularGauge";
 import { Input } from "../ui/input";
+import { ProgressRing } from "../ui/ProgressRing";
+import { SunPosition } from "../ui/SunPosition";
+import { WeatherCard } from "../ui/WeatherCard";
 
 const aqiBandStyles: Record<
 	AqiBand,
@@ -263,6 +268,9 @@ export function CitizenView() {
 	const highlightedMetric = useEnvStore((s) => s.highlightedMetric);
 	const setHighlightedMetric = useEnvStore((s) => s.setHighlightedMetric);
 
+	const { checkIn, incrementCleanups, xp, level, streak, dailyMissions } =
+		useGamificationStore();
+
 	const [placeQuery, setPlaceQuery] = useState("");
 	const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
 	const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
@@ -336,6 +344,10 @@ export function CitizenView() {
 		selectedRegion.defaultAqi,
 		setAirQualityCalculations,
 	]);
+
+	useEffect(() => {
+		checkIn();
+	}, [checkIn]);
 
 	const calculations = useEnvStore((s) => s.airQualityCalculations);
 	const band = localEnvironment?.aqiBand ?? "moderate";

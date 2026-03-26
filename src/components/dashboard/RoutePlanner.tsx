@@ -13,6 +13,7 @@ import {
 	MapPin,
 	Navigation,
 	Plane,
+	RotateCcw,
 	Search,
 	Train,
 	X,
@@ -27,7 +28,7 @@ import {
 	type TransportMode,
 } from "#/lib/carbon-calculator";
 import type { CityDestination } from "#/lib/global-destinations";
-import { BOKARO_COORDS, searchCities } from "#/lib/global-destinations";
+import { searchCities } from "#/lib/global-destinations";
 import { getBestRoute, getRouteScore } from "#/lib/multi-modal-routes";
 import { useEnvStore } from "#/store/envStore";
 
@@ -41,18 +42,20 @@ const MODE_ICONS: Record<TransportMode, React.ReactNode> = {
 	walk: <Footprints className="h-4 w-4" />,
 };
 
-const BOKARO: CityDestination = {
-	id: "bokaro",
-	name: "Bokaro Steel City",
-	country: "India",
-	region: "India",
-	coords: BOKARO_COORDS,
-};
+function formatCoords(lat: number, lng: number): string {
+	return `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lng).toFixed(2)}°${lng >= 0 ? "E" : "W"}`;
+}
 
 export function RoutePlanner() {
 	const [isCollapsed, setIsCollapsed] = useState(false);
-	const [searchQuery, setSearchQuery] = useState("");
-	const [showDropdown, setShowDropdown] = useState(false);
+	const [destinationQuery, setDestinationQuery] = useState("");
+	const [showDestinationDropdown, setShowDestinationDropdown] = useState(false);
+	const [showOriginDropdown, setShowOriginDropdown] = useState(false);
+	const [originSearchQuery, setOriginSearchQuery] = useState("");
+	const [useCustomOrigin, setUseCustomOrigin] = useState(false);
+	const [customOrigin, setCustomOrigin] = useState<CityDestination | null>(
+		null,
+	);
 	const [filterBy] = useState<"all" | "fastest" | "greenest" | "cleanest">(
 		"all",
 	);
@@ -64,6 +67,7 @@ export function RoutePlanner() {
 	const routeResults = useEnvStore((s) => s.routeResults);
 	const setActiveRouteCoords = useEnvStore((s) => s.setActiveRouteCoords);
 	const setRouteResults = useEnvStore((s) => s.setRouteResults);
+	const userLocation = useEnvStore((s) => s.userLocation);
 
 	const routes = useMemo(() => {
 		return Object.entries(routeResults).map(([mode, data]) => ({
@@ -91,12 +95,36 @@ export function RoutePlanner() {
 		});
 	}, [routes, filterBy]);
 
-	const searchResults = useMemo(() => {
-		if (!searchQuery) return [];
-		return searchCities(searchQuery);
-	}, [searchQuery]);
+	const destinationResults = useMemo(() => {
+		if (!destinationQuery) return [];
+		return searchCities(destinationQuery);
+	}, [destinationQuery]);
 
-	const handleSelectCity = useCallback(
+	const originResults = useMemo(() => {
+		if (!originSearchQuery) return [];
+		return searchCities(originSearchQuery);
+	}, [originSearchQuery]);
+
+	const effectiveOrigin = useMemo(() => {
+		if (useCustomOrigin && customOrigin) {
+			return {
+				coords: customOrigin.coords,
+				name: customOrigin.name,
+			};
+		}
+		if (userLocation) {
+			return {
+				coords: userLocation,
+				name: formatCoords(userLocation[1], userLocation[0]),
+			};
+		}
+		return {
+			coords: null,
+			name: "Your Location",
+		};
+	}, [useCustomOrigin, customOrigin, userLocation]);
+
+	const handleSelectDestination = useCallback(
 		(city: CityDestination) => {
 			setRouteDestination({
 				id: city.id,
@@ -104,11 +132,31 @@ export function RoutePlanner() {
 				country: city.country,
 				coords: city.coords,
 			});
-			setSearchQuery("");
-			setShowDropdown(false);
+			setDestinationQuery("");
+			setShowDestinationDropdown(false);
 		},
 		[setRouteDestination],
 	);
+
+	const handleSelectOrigin = useCallback((city: CityDestination) => {
+		setCustomOrigin({
+			id: city.id,
+			name: city.name,
+			country: city.country,
+			region: city.region,
+			coords: city.coords,
+		});
+		setUseCustomOrigin(true);
+		setOriginSearchQuery("");
+		setShowOriginDropdown(false);
+	}, []);
+
+	const handleUseCurrentLocation = useCallback(() => {
+		setUseCustomOrigin(false);
+		setCustomOrigin(null);
+		setOriginSearchQuery("");
+		setShowOriginDropdown(false);
+	}, []);
 
 	const handleModeSelect = useCallback(
 		(mode: TransportMode) => {
@@ -196,51 +244,121 @@ export function RoutePlanner() {
 			<div className="p-4">
 				{!routeDestination && (
 					<div className="mb-3 flex items-center gap-2">
-						<div className="flex flex-1 items-center gap-2 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2">
+						<div className="relative flex flex-1 items-center gap-2 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2">
 							<MapPin className="h-3.5 w-3.5 text-teal-400" />
-							<span className="font-mono text-[10px] text-teal-400">
-								{BOKARO.name}
-							</span>
+							<button
+								type="button"
+								onClick={() => setShowOriginDropdown(!showOriginDropdown)}
+								className="flex flex-1 items-center justify-between text-left"
+							>
+								<span className="font-mono text-[10px] text-teal-400 truncate">
+									{effectiveOrigin.name}
+								</span>
+								<ChevronDown className="h-3 w-3 text-teal-400" />
+							</button>
+							{showOriginDropdown && (
+								<div className="absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-white/10 bg-black/95 shadow-xl">
+									{userLocation && (
+										<button
+											type="button"
+											onClick={handleUseCurrentLocation}
+											className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/10"
+										>
+											<Navigation className="h-3 w-3 text-teal-400" />
+											<span className="font-mono text-[10px] text-white">
+												Use current location
+											</span>
+										</button>
+									)}
+									<div className="border-b border-white/10 px-3 py-2">
+										<Search className="absolute left-4 top-1/2 h-3 w-3 -translate-y-1/2 text-zinc-500" />
+										<input
+											type="text"
+											value={originSearchQuery}
+											onChange={(e) => {
+												setOriginSearchQuery(e.target.value);
+											}}
+											placeholder="Search origin city..."
+											className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 pl-8 pr-2 font-mono text-[10px] text-white placeholder-zinc-600 outline-none focus:border-teal-500/50"
+											onClick={(e) => e.stopPropagation()}
+										/>
+									</div>
+									{originSearchQuery && originResults.length > 0 && (
+										<div className="max-h-32 overflow-y-auto">
+											{originResults.slice(0, 5).map((city) => (
+												<button
+													key={city.id}
+													type="button"
+													onClick={() => handleSelectOrigin(city)}
+													className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/10"
+												>
+													<MapPin className="h-3 w-3 text-zinc-500" />
+													<span className="font-mono text-[10px] text-white">
+														{city.name}
+													</span>
+													<span className="font-mono text-[8px] text-zinc-500">
+														{city.country}
+													</span>
+												</button>
+											))}
+										</div>
+									)}
+									{(useCustomOrigin || customOrigin) && userLocation && (
+										<button
+											type="button"
+											onClick={handleUseCurrentLocation}
+											className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/10"
+										>
+											<RotateCcw className="h-3 w-3 text-zinc-500" />
+											<span className="font-mono text-[10px] text-zinc-400">
+												Switch to current location
+											</span>
+										</button>
+									)}
+								</div>
+							)}
 						</div>
 						<ArrowRight className="h-4 w-4 text-zinc-500" />
 						<div className="relative flex flex-1">
 							<Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
 							<input
 								type="text"
-								value={searchQuery}
+								value={destinationQuery}
 								onChange={(e) => {
-									setSearchQuery(e.target.value);
-									setShowDropdown(true);
+									setDestinationQuery(e.target.value);
+									setShowDestinationDropdown(true);
 								}}
-								onFocus={() => setShowDropdown(true)}
+								onFocus={() => setShowDestinationDropdown(true)}
 								placeholder="Search destination..."
 								className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 font-mono text-[10px] text-white placeholder-zinc-600 outline-none focus:border-teal-500/50"
 							/>
-							{showDropdown && searchQuery && searchResults.length > 0 && (
-								<div className="absolute left-0 top-full z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-white/10 bg-black/95 shadow-xl">
-									{searchResults.map((city) => (
-										<button
-											key={city.id}
-											type="button"
-											onClick={() => handleSelectCity(city)}
-											className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/10"
-										>
-											<MapPin className="h-3 w-3 text-zinc-500" />
-											<span className="font-mono text-[10px] text-white">
-												{city.name}
-											</span>
-											<span className="font-mono text-[8px] text-zinc-500">
-												{city.country}
-											</span>
-										</button>
-									))}
-								</div>
-							)}
+							{showDestinationDropdown &&
+								destinationQuery &&
+								destinationResults.length > 0 && (
+									<div className="absolute left-0 top-full z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-white/10 bg-black/95 shadow-xl">
+										{destinationResults.map((city) => (
+											<button
+												key={city.id}
+												type="button"
+												onClick={() => handleSelectDestination(city)}
+												className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/10"
+											>
+												<MapPin className="h-3 w-3 text-zinc-500" />
+												<span className="font-mono text-[10px] text-white">
+													{city.name}
+												</span>
+												<span className="font-mono text-[8px] text-zinc-500">
+													{city.country}
+												</span>
+											</button>
+										))}
+									</div>
+								)}
 						</div>
 					</div>
 				)}
 
-				{!routeDestination && !searchQuery && (
+				{!routeDestination && !destinationQuery && (
 					<div className="py-8 text-center">
 						<Globe className="mx-auto h-8 w-8 text-zinc-600" />
 						<p className="mt-2 font-mono text-[10px] text-zinc-500">

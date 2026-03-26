@@ -74,6 +74,30 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.274 0.006 286.033);
   --sidebar-ring: oklch(0.442 0.017 285.786);
+  
+  /* Glassmorphism Design Tokens */
+  --glass-bg: rgba(26, 26, 26, 0.85);
+  --glass-bg-hover: rgba(35, 35, 35, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.12);
+  --glass-glow: rgba(20, 184, 166, 0.15);
+  --glass-glow-strong: rgba(20, 184, 166, 0.25);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --card-shadow-glow: 0 8px 32px rgba(20, 184, 166, 0.15);
+  
+  /* Metric Colors */
+  --metric-aqi-good: #22c55e;
+  --metric-aqi-moderate: #eab308;
+  --metric-aqi-unhealthy: #f97316;
+  --metric-aqi-hazardous: #dc2626;
+  --metric-uv-low: #22c55e;
+  --metric-uv-moderate: #eab308;
+  --metric-uv-high: #f97316;
+  --metric-uv-very-high: #dc2626;
+  --metric-temperature-cold: #3b82f6;
+  --metric-temperature-moderate: #22c55e;
+  --metric-temperature-hot: #ef4444;
+  --metric-humidity: #06b6d4;
 }
 
 @theme inline {

@@ -1,6 +1,13 @@
 import { UserButton, useUser } from "@clerk/clerk-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useCallback, useEffect, useMemo } from "react";
+import {
+	lazy,
+	Suspense,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { ModeSwitcher } from "#/components/dashboard/ModeSwitcher";
 import { TopWidgetBar } from "#/components/dashboard/TopWidgetBar";
 import type { RouteSegment } from "#/components/map/CityMap";
@@ -186,6 +193,11 @@ const RoutePlanner = lazy(() =>
 		default: module.RoutePlanner,
 	})),
 );
+const UserProfileModal = lazy(() =>
+	import("#/components/dashboard/UserProfileModal").then((module) => ({
+		default: module.UserProfileModal,
+	})),
+);
 
 export const Route = createFileRoute("/dashboard")({
 	component: DashboardPage,
@@ -263,6 +275,7 @@ function TerminalOverlay() {
 }
 
 function DashboardPage() {
+	const [showUserProfile, setShowUserProfile] = useState(false);
 	const { user, isSignedIn, isLoaded } = useUser();
 	const navigate = useNavigate();
 	const mode = useFeatureStore((s) => s.mode);

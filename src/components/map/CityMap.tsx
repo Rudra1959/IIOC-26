@@ -11,7 +11,7 @@ import { useQueries } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapLibreMap } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Route, Wind } from "lucide-react";
+import { Route, Terminal, Wind } from "lucide-react";
 import { fetchWindGrid } from "../../lib/environment";
 import { getAllRoutes } from "../../lib/multi-modal-routes";
 import { fetchRoadRoute } from "../../lib/routing";
@@ -522,6 +522,8 @@ export function CityMap({
 	const setRouteResults = useEnvStore((s) => s.setRouteResults);
 	const showRoutePanel = useEnvStore((s) => s.showRoutePanel);
 	const setShowRoutePanel = useEnvStore((s) => s.setShowRoutePanel);
+	const showTerminal = useEnvStore((s) => s.showTerminal);
+	const setShowTerminal = useEnvStore((s) => s.setShowTerminal);
 	const identifiedSources = useEnvStore((s) => s.identifiedSources);
 
 	useEffect(() => {
@@ -2094,6 +2096,19 @@ export function CityMap({
 							{Math.round(currentWindSpeed)}km/h
 						</span>
 					)}
+				</button>
+
+				<button
+					type="button"
+					onClick={() => setShowTerminal(!showTerminal)}
+					className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition-all ${
+						showTerminal
+							? "border-purple-500/50 bg-purple-500/20 text-purple-300 shadow-lg shadow-purple-500/10"
+							: "border-white/10 bg-black/60 text-zinc-300 backdrop-blur-md hover:bg-white/10"
+					}`}
+				>
+					<Terminal className="h-3.5 w-3.5" />
+					<span>Terminal</span>
 				</button>
 
 				{showProjectionOnMap && (
